@@ -66,6 +66,26 @@ def get_const_tuple(in_tuple):
     return out_tuple
 
 
+def get_const_float_tuple(in_tuple):
+    """Verifies input tuple is string, returns tuple of floats.
+
+    Parameters
+    ----------
+    in_tuple : tuple of Expr
+        The input.
+
+    Returns
+    -------
+    out_tuple : tuple of float
+        The output.
+    """
+    out_tuple = ()
+    for elem in in_tuple.split(','):
+        value = float(elem.strip('()'))
+        out_tuple = out_tuple + (value, )
+    return out_tuple
+
+
 def simplify(expr):
     """Simplify the expression if it is Expr, directly return if it is int.
 
