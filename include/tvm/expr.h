@@ -52,7 +52,7 @@ enum StorageType : int {
 struct TVMStorageType : public NodeRef {
   StorageType storage_type;
   /*! \brief constructor */
-  TVMStorageType():storage_type(kDefaultStorage){}
+  TVMStorageType() : storage_type(kDefaultStorage) {}
   explicit TVMStorageType(std::shared_ptr<Node> n) : NodeRef(n) {}
 };
 
