@@ -335,13 +335,6 @@ class TVMArgValue : public TVMPODValue_ {
     TVM_CHECK_TYPE_CODE(type_code_, kTVMType);
     return value_.v_type;
   }
-  // operator TVMStorageType() const {
-  //   if (type_code_ == kStr) {
-  //     return String2TVMStorageType(operator std::string());
-  //   }
-  //   TVM_CHECK_TYPE_CODE(type_code_, kStorageType);
-  //   return value_.v_stype;
-  // }
   operator PackedFunc() const {
     if (type_code_ == kNull) return PackedFunc();
     TVM_CHECK_TYPE_CODE(type_code_, kFuncHandle);
