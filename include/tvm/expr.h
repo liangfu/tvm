@@ -42,6 +42,20 @@ using HalideIR::Internal::const_true;
 using HalideIR::Internal::const_false;
 using HalideIR::Internal::is_no_op;
 
+enum StorageType : int {
+  kUndefinedStorage = -1,  // undefined storage
+  kDefaultStorage,         // dense
+  kRowSparseStorage,       // row sparse
+  kCSRStorage,             // csr
+};
+
+struct TVMStorageType : public NodeRef {
+  StorageType storage_type;
+  /*! \brief constructor */
+  TVMStorageType():storage_type(kDefaultStorage){}
+  explicit TVMStorageType(std::shared_ptr<Node> n) : NodeRef(n) {}
+};
+
 inline Type TVMShapeIndexType() {
   if (std::is_signed<tvm_index_t>::value) {
     return Int(sizeof(tvm_index_t) * 8);

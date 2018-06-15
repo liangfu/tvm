@@ -82,6 +82,7 @@ typedef enum {
   kFuncHandle = 10U,
   kStr = 11U,
   kBytes = 12U,
+  kStorageType = 13U,
   // Extension codes for other frameworks to integrate TVM PackedFunc.
   // To make sure each framework's id do not conflict, use first and
   // last sections to mark ranges.
@@ -106,6 +107,9 @@ typedef enum {
  */
 typedef DLDataType TVMType;
 
+
+typedef DLStorageType TVMStorageType;
+
 /*!
  * \brief The Device information, abstract away common device types.
  */
@@ -127,6 +131,7 @@ typedef union {
   const char* v_str;
   TVMType v_type;
   TVMContext v_ctx;
+  TVMStorageType v_stype;
 } TVMValue;
 
 /*!
