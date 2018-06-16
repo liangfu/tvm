@@ -1,4 +1,4 @@
-/*!
+/*!A
  *  Copyright (c) 2017 by Contributors
  * \file tvm/runtime/packed_func.h
  * \brief Type-erased function used across TVM API.
@@ -335,6 +335,13 @@ class TVMArgValue : public TVMPODValue_ {
     TVM_CHECK_TYPE_CODE(type_code_, kTVMType);
     return value_.v_type;
   }
+  operator TVMStorageType() const {
+    if (type_code_ == kStr) {
+      return String2TVMStorageType(operator std::string());
+    }
+    TVM_CHECK_TYPE_CODE(type_code_, kTVMStorageType);
+    return value_.v_stype;
+  }
   operator PackedFunc() const {
     if (type_code_ == kNull) return PackedFunc();
     TVM_CHECK_TYPE_CODE(type_code_, kFuncHandle);
@@ -637,7 +644,7 @@ inline const char* TypeCode2Str(int type_code) {
     case kTVMContext: return "TVMContext";
     case kFuncHandle: return "FunctionHandle";
     case kModuleHandle: return "ModuleHandle";
-    case kStorageType: return "StorageType";
+    case kTVMStorageType: return "TVMStorageType";
     default: LOG(FATAL) << "unknown type_code="
                         << static_cast<int>(type_code); return "";
   }
@@ -700,13 +707,13 @@ inline TVMType String2TVMType(std::string s) {
 }
 
 inline TVMStorageType String2TVMStorageType(std::string s) {
-  TVMStorageType t;
+  TVMStorageType t = kDefaultStorage;
   if (s.substr(0, 3) == "csr") {
-    t.code = kDLCSRStorage;
+    t = kCSRStorage;
   } else if (s.substr(0, 5) == "dense") {
-    t.code = kDLDefaultStorage;
+    t = kDefaultStorage;
   } else if (s.substr(0, 9) == "rowsparse") {
-    t.code = kDLRowSparseStorage;
+    t = kRowSparseStorage;
   } else {
     LOG(FATAL) << "unknown type " << s;
   }
@@ -807,7 +814,7 @@ class TVMArgsSetter {
   }
   void operator()(size_t i, TVMStorageType value) const {
     values_[i].v_stype = value;
-    type_codes_[i] = kStorageType;
+    type_codes_[i] = kTVMStorageType;
   }
   void operator()(size_t i, const char* value) const {
     values_[i].v_str = value;
