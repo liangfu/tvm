@@ -159,6 +159,8 @@ inline const char* TypeCode2Str(int type_code);
  */
 inline TVMType String2TVMType(std::string s);
 
+inline TVMStorageType String2TVMStorageType(std::string s);
+
 /*!
  * \brief convert a TVM type to string.
  * \param t The type to be converted.
@@ -635,6 +637,7 @@ inline const char* TypeCode2Str(int type_code) {
     case kTVMContext: return "TVMContext";
     case kFuncHandle: return "FunctionHandle";
     case kModuleHandle: return "ModuleHandle";
+    case kStorageType: return "StorageType";
     default: LOG(FATAL) << "unknown type_code="
                         << static_cast<int>(type_code); return "";
   }
@@ -692,6 +695,20 @@ inline TVMType String2TVMType(std::string s) {
   if (bits != 0) t.bits = bits;
   if (*xdelim == 'x') {
     t.lanes = static_cast<uint16_t>(strtoul(xdelim + 1, nullptr, 10));
+  }
+  return t;
+}
+
+inline TVMStorageType String2TVMStorageType(std::string s) {
+  TVMStorageType t;
+  if (s.substr(0, 3) == "csr") {
+    t.code = kDLCSRStorage;
+  } else if (s.substr(0, 5) == "dense") {
+    t.code = kDLDefaultStorage;
+  } else if (s.substr(0, 9) == "rowsparse") {
+    t.code = kDLRowSparseStorage;
+  } else {
+    LOG(FATAL) << "unknown type " << s;
   }
   return t;
 }
@@ -787,6 +804,10 @@ class TVMArgsSetter {
   void operator()(size_t i, TVMType value) const {
     values_[i].v_type = value;
     type_codes_[i] = kTVMType;
+  }
+  void operator()(size_t i, TVMStorageType value) const {
+    values_[i].v_stype = value;
+    type_codes_[i] = kStorageType;
   }
   void operator()(size_t i, const char* value) const {
     values_[i].v_str = value;

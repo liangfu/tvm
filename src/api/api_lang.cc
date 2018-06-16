@@ -225,7 +225,8 @@ TVM_REGISTER_API("_Tensor")
     *ret = TensorNode::make(args[0],
                             args[1],
                             args[2],
-                            args[3]);
+                            args[3],
+                            args[4]);
   });
 
 TVM_REGISTER_API("_TensorIntrin")

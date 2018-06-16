@@ -29,7 +29,8 @@ Expr Tensor::operator()(Array<Expr> indices) const {
 Tensor TensorNode::make(Array<Expr> shape,
                         Type dtype,
                         Operation op,
-                        int value_index) {
+                        int value_index,
+                        StorageType stype) {
   auto n = std::make_shared<TensorNode>();
   n->shape = std::move(shape);
   n->dtype = dtype;

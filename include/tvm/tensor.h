@@ -145,6 +145,8 @@ class TensorNode : public Node {
   Operation op;
   /*! \brief the output index from source operation */
   int value_index{0};
+  /*! \brief storage type in the content of the tensor */
+  TVMStorageType stype;
   /*! \brief constructor */
   TensorNode() {}
 
@@ -153,11 +155,13 @@ class TensorNode : public Node {
     v->Visit("dtype", &dtype);
     v->Visit("op", &op);
     v->Visit("value_index", &value_index);
+    v->Visit("stype", &stype);
   }
   TVM_DLL static Tensor make(Array<Expr> shape,
                              Type dtype,
                              Operation op,
-                             int value_index);
+                             int value_index,
+                             TVMStorageType stype);
 
   static constexpr const char* _type_key = "Tensor";
   TVM_DECLARE_NODE_TYPE_INFO(TensorNode, Node);
