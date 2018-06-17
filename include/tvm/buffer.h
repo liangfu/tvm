@@ -89,6 +89,8 @@ class BufferNode : public Node {
   Var data;
   /*! \brief data type in the content of the tensor */
   Type dtype;
+  /*! \brief storage type in the content of the tensor */
+  StorageType stype;
   /*! \brief The shape of the buffer */
   Array<Expr> shape;
   /*!
@@ -116,6 +118,7 @@ class BufferNode : public Node {
   void VisitAttrs(AttrVisitor* v) final {
     v->Visit("data", &data);
     v->Visit("dtype", &dtype);
+    v->Visit("stype", &stype);
     v->Visit("shape", &shape);
     v->Visit("strides", &strides);
     v->Visit("elem_offset", &elem_offset);

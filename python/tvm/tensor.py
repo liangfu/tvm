@@ -28,6 +28,11 @@ class TensorSlice(NodeGeneric, _expr.ExprOp):
         """Data content of the tensor."""
         return self.tensor.dtype
 
+    @property
+    def stype(self):
+        """Storage type of the tensor."""
+        return self.tensor.stype
+
 
 itervar_cls = None
 
@@ -50,7 +55,7 @@ class Tensor(NodeBase, _expr.ExprOp):
 
         return _make.Call(self.dtype, self.op.name,
                           args, _expr.Call.Halide,
-                          self.op, self.value_index)
+                          self.op, self.value_index, self.op.stype)
 
     def __getitem__(self, indices):
         return TensorSlice(self, indices)
@@ -93,6 +98,11 @@ class Tensor(NodeBase, _expr.ExprOp):
     def shape(self):
         """The output shape of the tensor."""
         return self.__getattr__("shape")
+
+    @property
+    def stype(self):
+        """The storage type of the tensor."""
+        return self.op.stype
 
     @property
     def name(self):

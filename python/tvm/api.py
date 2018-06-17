@@ -164,7 +164,7 @@ def all(*args):
     return ret
 
 
-def placeholder(shape, dtype=None, name="placeholder"):
+def placeholder(shape, dtype=None, name="placeholder", stype=None):
     """Construct an empty tensor object.
 
     Parameters
@@ -178,6 +178,9 @@ def placeholder(shape, dtype=None, name="placeholder"):
     name: str, optional
         The name hint of the tensor
 
+    stype: str, optional
+        The storage type of the tensor
+
     Returns
     -------
     tensor: Tensor
@@ -185,8 +188,9 @@ def placeholder(shape, dtype=None, name="placeholder"):
     """
     shape = (shape,) if isinstance(shape, _expr.Expr) else shape
     dtype = float32 if dtype is None else dtype
+    stype = "dense" if stype is None else stype
     return _api_internal._Placeholder(
-        shape, dtype, name)
+        shape, dtype, name, stype)
 
 
 def compute(shape, fcompute, name="compute", tag=""):

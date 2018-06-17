@@ -28,6 +28,11 @@ Type PlaceholderOpNode::output_dtype(size_t i) const {
   return dtype;
 }
 
+StorageType PlaceholderOpNode::output_stype(size_t i) const {
+  CHECK_EQ(i, 0U);
+  return stype;
+}
+
 Array<Expr> PlaceholderOpNode::output_shape(size_t i) const {
   CHECK_EQ(i, 0U);
   return shape;
@@ -35,16 +40,19 @@ Array<Expr> PlaceholderOpNode::output_shape(size_t i) const {
 
 Operation PlaceholderOpNode::make(std::string name,
                                   Array<Expr> shape,
-                                  Type dtype) {
+                                  Type dtype,
+                                  StorageType stype) {
   auto n = std::make_shared<PlaceholderOpNode>();
   n->name = name;
   n->shape = shape;
   n->dtype = dtype;
+  n->stype = stype;
   return Operation(n);
 }
 
-Tensor placeholder(Array<Expr> shape, Type dtype, std::string name) {
-  return PlaceholderOpNode::make(name, shape, dtype).output(0);
+Tensor placeholder(Array<Expr> shape, Type dtype, std::string name,
+                   StorageType stype) {
+  return PlaceholderOpNode::make(name, shape, dtype, stype).output(0);
 }
 
 Array<Tensor> PlaceholderOpNode::InputTensors() const {

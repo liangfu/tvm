@@ -38,6 +38,10 @@ Type ScanOpNode::output_dtype(size_t i) const {
   return update[i]->dtype;
 }
 
+StorageType ScanOpNode::output_stype(size_t idx) const {
+  return kDefaultStorage; // update[i]->stype;
+}
+
 Array<Expr> ScanOpNode::output_shape(size_t i) const {
   CHECK_LT(i, state_placeholder.size());
   return state_placeholder[i]->shape;

@@ -52,6 +52,11 @@ Type ComputeOpNode::output_dtype(size_t idx) const {
   return body[idx].type();
 }
 
+StorageType ComputeOpNode::output_stype(size_t idx) const {
+  CHECK_EQ(idx, num_outputs());
+  return kUndefinedStorage; // body[idx].stype();
+}
+
 Array<Expr> ComputeOpNode::output_shape(size_t idx) const {
   CHECK_LT(idx, num_outputs());
   // for now, all outputs of ComputeOp have the same shape

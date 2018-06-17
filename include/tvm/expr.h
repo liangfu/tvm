@@ -46,6 +46,12 @@ struct StorageType : public NodeRef {
   int storage_type;
   /*! \brief constructor */
   StorageType() : storage_type(kDefaultStorage) {}
+  StorageType(std::string name) :
+    storage_type(runtime::String2TVMStorageType(name)) {}
+  StorageType(const char * name) :
+    storage_type(runtime::String2TVMStorageType(name)) {}
+  StorageType(TVMStorageType type) :
+    storage_type(type) {}
   explicit StorageType(std::shared_ptr<Node> n) : NodeRef(n) {}
 };
 
