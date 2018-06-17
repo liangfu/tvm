@@ -47,8 +47,6 @@ struct StorageType : public NodeRef {
   /*! \brief constructor */
   StorageType() : storage_type(kDefaultStorage) {}
   explicit StorageType(std::shared_ptr<Node> n) : NodeRef(n) {}
-  /*! \brief specify container node */
-  //using ContainerType = TVMStorageType;
 };
 
 inline Type TVMShapeIndexType() {

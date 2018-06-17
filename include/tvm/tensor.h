@@ -146,7 +146,7 @@ class TensorNode : public Node {
   /*! \brief the output index from source operation */
   int value_index{0};
   /*! \brief storage type in the content of the tensor */
-  TVMStorageType stype;
+  StorageType stype;
   /*! \brief constructor */
   TensorNode() {}
 
@@ -161,7 +161,7 @@ class TensorNode : public Node {
                              Type dtype,
                              Operation op,
                              int value_index,
-                             TVMStorageType stype);
+                             StorageType stype);
 
   static constexpr const char* _type_key = "Tensor";
   TVM_DECLARE_NODE_TYPE_INFO(TensorNode, Node);
