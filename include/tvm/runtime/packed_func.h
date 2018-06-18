@@ -168,6 +168,8 @@ inline TVMStorageType String2TVMStorageType(std::string s);
  */
 inline std::string TVMType2String(TVMType t);
 
+inline std::string TVMStorageType2String(TVMStorageType t);
+
 // macro to check type code.
 #define TVM_CHECK_TYPE_CODE(CODE, T)                           \
   CHECK_EQ(CODE, T) << " expected "                            \
@@ -320,6 +322,8 @@ class TVMArgValue : public TVMPODValue_ {
   operator std::string() const {
     if (type_code_ == kTVMType) {
       return TVMType2String(operator TVMType());
+    } else if (type_code_ == kTVMStorageType) {
+      return TVMStorageType2String(operator TVMStorageType());
     } else if (type_code_ == kBytes) {
       TVMByteArray* arr = static_cast<TVMByteArray*>(value_.v_handle);
       return std::string(arr->data, arr->size);
@@ -704,6 +708,17 @@ inline TVMType String2TVMType(std::string s) {
     t.lanes = static_cast<uint16_t>(strtoul(xdelim + 1, nullptr, 10));
   }
   return t;
+}
+
+inline std::string TVMStorageType2String(TVMStorageType type_code) {
+  std::string ret = "undefined";
+  switch (int(type_code)) {
+  case (kUndefinedStorage): ret = "undefined"; break;
+  case (kDefaultStorage): ret = "dense"; break;
+  case (kCSRStorage): ret = "csr"; break;
+  case (kRowSparseStorage): ret = "rowsparse"; break;
+  }
+  return ret;
 }
 
 inline TVMStorageType String2TVMStorageType(std::string s) {

@@ -20,7 +20,6 @@ all:
 	@mkdir -p build && cd build && cmake .. && $(MAKE)
 
 runtime:
-
 	@mkdir -p build && cd build && cmake .. && $(MAKE) runtime
 
 cpptest:

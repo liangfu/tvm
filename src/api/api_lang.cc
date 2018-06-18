@@ -255,7 +255,8 @@ TVM_REGISTER_API("_Placeholder")
 .set_body([](TVMArgs args,  TVMRetValue* ret) {
     *ret = placeholder(args[0],
                        args[1],
-                       args[2]);
+                       args[2],
+                       args[3]);
   });
 
 TVM_REGISTER_API("_ComputeOp")

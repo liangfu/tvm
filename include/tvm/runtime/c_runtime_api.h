@@ -114,10 +114,6 @@ enum TVMStorageType : int {
   kCSRStorage,             // csr
 };
 
-// typedef struct {
-//   uint8_t code;
-// } TVMStorageType;
-
 /*!
  * \brief The Device information, abstract away common device types.
  */
