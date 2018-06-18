@@ -10,6 +10,12 @@
 
 namespace tvm {
 
+StorageType StorageTypeNode::make(TVMStorageType type_code) {
+  std::shared_ptr<StorageTypeNode> n = std::make_shared<StorageTypeNode>();
+  n->type_code_ = type_code;
+  return StorageType(n);
+}
+
 using HalideIR::IR::RangeNode;
 
 Range::Range(Expr begin, Expr end)

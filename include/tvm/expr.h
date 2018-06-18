@@ -42,18 +42,56 @@ using HalideIR::Internal::const_true;
 using HalideIR::Internal::const_false;
 using HalideIR::Internal::is_no_op;
 
-struct StorageType : public NodeRef {
-  int storage_type;
+class StorageTypeNode;
+
+class StorageType : public NodeRef {
+public:
+  // int type_code;
   /*! \brief constructor */
-  StorageType() : storage_type(kDefaultStorage) {}
-  StorageType(std::string name) :
-    storage_type(runtime::String2TVMStorageType(name)) {}
-  StorageType(const char * name) :
-    storage_type(runtime::String2TVMStorageType(name)) {}
-  StorageType(TVMStorageType type) :
-    storage_type(type) {}
+  StorageType() {}
+  // StorageType() : type_code(kDefaultStorage) {}
+  // StorageType(std::string name) :
+  //   type_code(runtime::String2TVMStorageType(name)) {}
+  // StorageType(const char * name) :
+  //   type_code(runtime::String2TVMStorageType(name)) {}
+  // StorageType(TVMStorageType type) : type_code(type) {}
+  StorageType(TVMStorageType type);
   explicit StorageType(std::shared_ptr<Node> n) : NodeRef(n) {}
+  /*!
+   * \brief access the internal node container
+   * \return the pointer to the internal node container
+   */
+  inline const StorageTypeNode* operator->() const;
+  /*!
+   * \return the corresponding type in the storage type.
+   */
+  inline operator Expr() const;
+  /*! \brief specify container node */
+  using ContainerType = StorageTypeNode;
 };
+
+class StorageTypeNode : public Node {
+public:
+  TVMStorageType type_code_;
+  void VisitAttrs(AttrVisitor* v) final {
+    v->Visit("type_code", &type_code_);
+  }
+  TVM_DLL static StorageType make(TVMStorageType type_code = kDefaultStorage);
+  static constexpr const char* _type_key = "StorageTypeNode";
+  TVM_DECLARE_NODE_TYPE_INFO(StorageTypeNode, Node);
+};
+
+StorageType::StorageType(TVMStorageType type_code) {
+  (*this)->make(type_code);
+}
+  
+inline const StorageTypeNode* StorageType::operator->() const {
+  return static_cast<const StorageTypeNode*>(node_.get());
+}
+  
+inline StorageType::operator Expr() const {
+  return (*this)->type_code_;
+}
 
 inline Type TVMShapeIndexType() {
   if (std::is_signed<tvm_index_t>::value) {

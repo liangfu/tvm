@@ -32,7 +32,7 @@ Type ExternOpNode::output_dtype(size_t i) const {
 }
 
 StorageType ExternOpNode::output_stype(size_t idx) const {
-  return StorageType("dense"); // output_placeholders[idx]->stype;
+  return StorageType(kDefaultStorage); // output_placeholders[idx]->stype;
 }
 
 Array<Expr> ExternOpNode::output_shape(size_t i) const {

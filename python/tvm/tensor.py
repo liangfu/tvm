@@ -102,7 +102,7 @@ class Tensor(NodeBase, _expr.ExprOp):
     @property
     def stype(self):
         """The storage type of the tensor."""
-        return self.op.stype
+        return self.__getattr__("stype")
 
     @property
     def name(self):
