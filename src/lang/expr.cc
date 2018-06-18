@@ -10,9 +10,13 @@
 
 namespace tvm {
 
-StorageType StorageTypeNode::make(TVMStorageType type_code) {
+StorageType::StorageType(TVMStorageType stype_code) {
+  (*this)->make(stype_code);
+}
+
+StorageType StorageTypeNode::make(TVMStorageType stype_code) {
   std::shared_ptr<StorageTypeNode> n = std::make_shared<StorageTypeNode>();
-  n->type_code_ = type_code;
+  n->stype_code_ = stype_code;
   return StorageType(n);
 }
 
@@ -78,6 +82,7 @@ TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
   });
 
 
+TVM_REGISTER_NODE_TYPE(StorageTypeNode);
 TVM_REGISTER_NODE_TYPE(ArrayNode);
 TVM_REGISTER_NODE_TYPE(MapNode);
 TVM_REGISTER_NODE_TYPE(StrMapNode);

@@ -84,6 +84,40 @@ class TVMType(ctypes.Structure):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+class TVMStorageType(ctypes.Structure):
+    """TVM storage type structure"""
+    _fields_ = [("type_code", ctypes.c_uint8),]
+    CODE2STR = {
+        0 : 'dense',
+        1 : 'csr',
+        2 : 'rowsparse',
+    }
+    def __init__(self, type_str):
+        super(TVMStorageType, self).__init__()
+        if isinstance(type_str, int):
+            type_str = CODE2STR[type_str]
+
+        if type_str.startswith("dense"):
+            self.type_code = 0
+        elif type_str.startswith("csr"):
+            self.type_code = 1
+        elif type_str.startswith("rowsparse"):
+            self.type_code = 2
+        else:
+            raise ValueError("Donot know how to handle storage type %s" % type_str)
+
+    def __repr__(self):
+        x = "%s%d" % (TVMStorageType.CODE2STR[self.type_code], self.bits)
+        if self.lanes != 1:
+            x += "x%d" % self.lanes
+        return x
+
+    def __eq__(self, other):
+        return self.type_code == other.type_code
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 RPC_SESS_MASK = 128
 
 class TVMContext(ctypes.Structure):
@@ -206,6 +240,7 @@ class TVMArray(ctypes.Structure):
                 ("ctx", TVMContext),
                 ("ndim", ctypes.c_int),
                 ("dtype", TVMType),
+                ("stype", TVMStorageType),
                 ("shape", ctypes.POINTER(tvm_shape_index_t)),
                 ("strides", ctypes.POINTER(tvm_shape_index_t)),
                 ("byte_offset", ctypes.c_uint64)]

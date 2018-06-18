@@ -72,25 +72,21 @@ public:
 
 class StorageTypeNode : public Node {
 public:
-  TVMStorageType type_code_;
+  TVMStorageType stype_code_;
   void VisitAttrs(AttrVisitor* v) final {
-    v->Visit("type_code", &type_code_);
+    v->Visit("stype_code", &stype_code_);
   }
-  TVM_DLL static StorageType make(TVMStorageType type_code = kDefaultStorage);
+  TVM_DLL static StorageType make(TVMStorageType stype_code = kDefaultStorage);
   static constexpr const char* _type_key = "StorageTypeNode";
   TVM_DECLARE_NODE_TYPE_INFO(StorageTypeNode, Node);
 };
 
-StorageType::StorageType(TVMStorageType type_code) {
-  (*this)->make(type_code);
-}
-  
 inline const StorageTypeNode* StorageType::operator->() const {
   return static_cast<const StorageTypeNode*>(node_.get());
 }
-  
+
 inline StorageType::operator Expr() const {
-  return (*this)->type_code_;
+  return (*this)->stype_code_;
 }
 
 inline Type TVMShapeIndexType() {

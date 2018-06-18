@@ -188,7 +188,7 @@ def placeholder(shape, dtype=None, name="placeholder", stype=None):
     """
     shape = (shape,) if isinstance(shape, _expr.Expr) else shape
     dtype = float32 if dtype is None else dtype
-    stype = "dense" if stype is None else stype
+    stype = 0 if stype is None else stype
     return _api_internal._Placeholder(
         shape, dtype, name, stype)
 

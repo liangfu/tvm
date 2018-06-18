@@ -47,7 +47,7 @@ Operation PlaceholderOpNode::make(std::string name,
   n->shape = shape;
   n->dtype = dtype;
   n->stype = stype;
-  std::cerr << stype->type_code_ << std::endl;
+  // std::cerr << n->stype->type_code_ << std::endl;
   return Operation(n);
 }
 

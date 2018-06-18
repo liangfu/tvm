@@ -191,6 +191,7 @@ find_library(GTEST_LIB gtest)
 
 if(GTEST_LIB)
   foreach(__srcpath ${TEST_SRCS})
+	  include_directories("/usr/local/include")
     get_filename_component(__srcname ${__srcpath} NAME)
     string(REPLACE ".cc" "" __execname ${__srcname})
     add_executable(${__execname} ${__srcpath})

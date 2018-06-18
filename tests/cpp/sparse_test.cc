@@ -9,6 +9,7 @@ TEST(Tensor, Basic) {
   Tensor A = placeholder({m, l}, Float(32), "A", kCSRStorage);
   Tensor B = placeholder({n, l}, Float(32), "B", kCSRStorage);
   CHECK(A->stype == tvm::StorageType(kCSRStorage));
+  // CHECK((A->stype)->type_code_ == kCSRStorage);
 
   auto C = compute({m, n}, [&](Var i, Var j) {
       return A[i][j];
