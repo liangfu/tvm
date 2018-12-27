@@ -133,7 +133,7 @@ Expr QRealizeIntExprNode::Realize() const {
   const auto& cfg = QConfig::Current();
   Expr data = this->data;
   if (cfg->store_lowbit_output) {
-    data = Cast(data, Int(8));
+    data = Cast(data, cfg->dtype_input);
   }
   // dequantize
   data = Cast(data, Float(32));
@@ -158,9 +158,10 @@ inline Expr ForwardOp(const Call& ref_call, const Array<Expr>& args) {
 
 /* calculate `data * s1 / s2`, use shift if possible */
 inline Expr MulAndDiv(Expr data, float s1, float s2) {
+  const QConfig& cfg = QConfig::Current();
   float shift_factor = std::log2(s1 / s2);
   if (static_cast<int>(shift_factor) == shift_factor) {
-    return LeftShift(data, MakeConstantScalar(Int(32), static_cast<int>(shift_factor)));
+    return LeftShift(data, MakeConstantScalar(cfg->dtype_activation, static_cast<int>(shift_factor)));
   } else {
     data = Cast(data, Float(32));
     return Multiply(data, MakeConstantScalar(Float(32), s1 / s2));
@@ -195,9 +196,9 @@ Expr QuantizeRealize(const Call& ref_call,
       // use shift
       if (cfg->round_for_shift) {
         float round_bias = std::pow(2, shift_nbit - 1);
-        data = Add(data, MakeConstantScalar(Int(32), static_cast<int>(round_bias)));
+        data = Add(data, MakeConstantScalar(cfg->dtype_activation, static_cast<int>(round_bias)));
       }
-      data = RightShift(data, MakeConstantScalar(Int(32), static_cast<int>(shift_nbit)));
+      data = RightShift(data, MakeConstantScalar(cfg->dtype_activation, static_cast<int>(shift_nbit)));
       data = Clip(data, clip_min_imm, clip_max_imm);
       return QRealizeIntExprNode::make(data, dom_scale, n->dtype);
     } else {
@@ -256,6 +257,7 @@ RELAY_REGISTER_OP("nn.conv2d")
 Expr MulRealize(const Call& ref_call,
                 const Array<Expr>& new_args,
                 const NodeRef& ctx) {
+  const QConfig& cfg = QConfig::Current();
   CHECK_EQ(new_args.size(), 2);
   if (new_args[0].as<QRealizeIntExprNode>() && new_args[1].as<QRealizeIntExprNode>()) {
     const auto* lhs = new_args[0].as<QRealizeIntExprNode>();
@@ -263,13 +265,18 @@ Expr MulRealize(const Call& ref_call,
     Expr ldata = lhs->data;
     Expr rdata = rhs->data;
 
-    DataType dtype;
-    if (lhs->dtype == Int(32) && rhs->dtype == Float(32)) {
-      dtype = Int(32);
-      rdata = Cast(rdata, Int(32));
+    DataType dtype = cfg->dtype_activation;
+    if (lhs->dtype == Float(32)) {
+      ldata = Cast(ldata, dtype);
     } else {
-      LOG(FATAL) << "Do not support yet.";
+      CHECK_EQ(lhs->dtype, dtype);
     }
+    if (rhs->dtype == Float(32)) {
+      rdata = Cast(rdata, dtype);
+    } else {
+      CHECK_EQ(rhs->dtype, dtype);
+    }
+
     Expr ret = ForwardOp(ref_call, {ldata, rdata});
     Expr dom_scale = FoldConstant(Multiply(lhs->dom_scale, rhs->dom_scale));
     return QRealizeIntExprNode::make(ret, dom_scale, dtype);
@@ -285,6 +292,7 @@ RELAY_REGISTER_OP("multiply")
 Expr AddRealize(const Call& ref_call,
                 const Array<Expr>& new_args,
                 const NodeRef& ctx) {
+  const QConfig& cfg = QConfig::Current();
   CHECK_EQ(new_args.size(), 2);
   if (new_args[0].as<QRealizeIntExprNode>() && new_args[1].as<QRealizeIntExprNode>()) {
     const auto* lhs = new_args[0].as<QRealizeIntExprNode>();
@@ -293,17 +301,16 @@ Expr AddRealize(const Call& ref_call,
     Expr rdata = rhs->data;
 
     // unify the data type
-    DataType dtype;
-    if (lhs->dtype == Int(32) && rhs->dtype == Float(32)) {
-      dtype = Int(32);
-      rdata = Cast(rdata, dtype);
-    } else if (lhs->dtype == Float(32) && rhs->dtype == Int(32)) {
-      dtype = Int(32);
+    DataType dtype = cfg->dtype_activation;
+    if (lhs->dtype == Float(32)) {
       ldata = Cast(ldata, dtype);
-    } else if (lhs->dtype == Int(32) && rhs->dtype == Int(32)) {
-      dtype = Int(32);
     } else {
-      LOG(FATAL) << "Do not support yet.";
+      CHECK_EQ(lhs->dtype, dtype);
+    }
+    if (rhs->dtype == Float(32)) {
+      rdata = Cast(rdata, dtype);
+    } else {
+      CHECK_EQ(rhs->dtype, dtype);
     }
 
     // unify the dom_scale

@@ -19,6 +19,20 @@
 namespace tvm {
 namespace relay {
 
+#define TVM_DTYPE_DISPATCH(type, DType, ...)            \
+  if (type == Float(32)) {                              \
+    typedef float DType;                                \
+    {__VA_ARGS__}                                       \
+  } else if (type == Int(16)) {                         \
+    typedef int16_t DType;                              \
+    {__VA_ARGS__}                                       \
+  } else if (type == Int(32)) {                         \
+    typedef int32_t DType;                              \
+    {__VA_ARGS__}                                       \
+  } else {                                              \
+    LOG(FATAL) << "unknown data type " << type;         \
+  }
+
 /*!
  * \brief Try to match lhs and rhs via broadcasting rule, such that:
  *
@@ -145,9 +159,11 @@ inline int64_t GetConv2DSuperChannelsDim(const CallNode* call) {
  */
 template<typename T>
 inline Constant MakeConstantScalar(DataType dtype, T value) {
-  CHECK_EQ(sizeof(T) * 8, dtype.bits()) << "data type mismatch";
+  // CHECK_EQ(sizeof(T) * 8, dtype.bits()) << "data type mismatch";
   runtime::NDArray arr = runtime::NDArray::Empty({}, Type2TVMType(dtype), {kDLCPU, 0});
-  *static_cast<T*>(arr->data) = value;
+  TVM_DTYPE_DISPATCH(dtype, DType, {
+    *static_cast<DType*>(arr->data) = value;
+  })
   return ConstantNode::make(arr);
 }
 
