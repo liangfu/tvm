@@ -19,6 +19,16 @@ class QAnnotateKind(object):
     ACTIVATION = 3
 
 
+def kind2str(kind):
+    str_map = {
+        QAnnotateKind.INPUT: "input",
+        QAnnotateKind.WEIGHT: "weight",
+        QAnnotateKind.ACTIVATION: "activation",
+    }
+    assert kind in str_map
+    return str_map[kind]
+
+
 @register_relay_node("relay.quantize.QConfig")
 class QConfig(NodeBase):
     """Configure the quantization behavior by setting config variables.
@@ -58,6 +68,14 @@ class QConfig(NodeBase):
         """
         super(QConfig, self).__init__(handle)
         self.handle = handle
+
+    def get_nbit_by_kind(self, kind):
+        name = kind2str(kind)
+        return getattr(self, 'nbit_' + name)
+
+    def get_dtype_by_kind(self, kind):
+        name = kind2str(kind)
+        return getattr(self, 'dtype_' + name)
 
     def __enter__(self):
         # pylint: disable=protected-access
@@ -107,8 +125,7 @@ def qconfig(**kwargs):
     """
     node_args = {k: v if k not in kwargs else kwargs[k]
                  for k, v in QConfig._node_defaults.items()}
-    config = _make.node("relay.quantize.QConfig", **node_args)
-    return config
+    return _make.node("relay.quantize.QConfig", **node_args)
 
 
 CONV_COUNTER = 0
@@ -155,10 +172,7 @@ def calibrate(graph, dataset=None):
     def power2_scale(arr):
         """calculate weight scale with nearest mode-2 scale"""
         val = np.amax(np.abs(arr.asnumpy()))
-        if val == 0.0:
-            return 1.0
-        else:
-            return 2**math.ceil(math.log(val, 2))
+        return 2**np.math.ceil(np.math.log(val, 2)) if val > 0 else 1.0
 
     cfg = current_qconfig()
     const_params = {}
@@ -169,30 +183,28 @@ def calibrate(graph, dataset=None):
             ndata, ndom_scale, nclip_min, nclip_max = e.args
             attrs = e.attrs
             kind = attrs.kind
-            TABLE = [0, cfg.nbit_input, cfg.nbit_weight, cfg.nbit_activation]
-            nbit = TABLE[kind]
+            nbit = cfg.get_nbit_by_kind(kind)
 
-            valid_bit = nbit
-            if attrs.sign:
-                valid_bit = nbit - 1
+            valid_bit = nbit - attrs.sign
 
             if kind == QAnnotateKind.WEIGHT:
                 var = e.args[0]
-                assert isinstance(var, _expr.Constant)
-                arr = var.data
-                scale = power2_scale(arr)
+                assert isinstance(var, _expr.Constant), "{0}".format(var)
+                scale = power2_scale(var.data)
             else:
                 scale = cfg.global_scale
 
-            const_params[ndom_scale] =  \
-                _expr.const(scale/2**valid_bit, 'float32')
-            const_params[nclip_min] = _expr.const(-(2**valid_bit-1), 'float32')
-            const_params[nclip_max] = _expr.const((2**valid_bit-1), 'float32')
+            def _make_const(val):
+                return _expr.const(val, 'float32')
+
+            valid_range = 2**valid_bit
+            const_params[ndom_scale] = _make_const(scale / valid_range)
+            const_params[nclip_min] = _make_const(- (valid_range - 1))
+            const_params[nclip_max] = _make_const((valid_range - 1))
         return
 
     _ir_pass.post_order_visit(graph, visit_func)
-    f = _expr.bind(graph, const_params)
-    return f
+    return _expr.bind(graph, const_params)
 
 
 def realize(graph):

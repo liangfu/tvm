@@ -28,8 +28,8 @@ class QAnnotateExpr(_expr.TempExpr):
 
 def _forward_op(ref_call, args):
     """forward the operator of ref_call with provided arguments"""
-    return _expr.Call(ref_call.op, args,
-                      ref_call.attrs, ref_call.type_args)
+    return _expr.Call(
+        ref_call.op, args, ref_call.attrs, ref_call.type_args)
 
 
 def register_annotate_function(op_name, frewrite=None, level=10):
@@ -70,9 +70,8 @@ def attach_simulated_quantize(data, kind):
 
 @register_annotate_function("nn.conv2d")
 def conv2d_rewrite(ref_call, new_args, ctx):
-    cfg = current_qconfig()
     cnt = _conv_counter()
-    if cnt < cfg.skip_k_conv:
+    if cnt < current_qconfig().skip_k_conv:
         _set_conv_counter(cnt + 1)
         return None
     _set_conv_counter(cnt + 1)
@@ -94,8 +93,7 @@ def conv2d_rewrite(ref_call, new_args, ctx):
 
 @register_annotate_function("multiply")
 def multiply_rewrite(ref_call, new_args, ctx):
-    cfg = current_qconfig()
-    if _conv_counter() <= cfg.skip_k_conv:
+    if _conv_counter() <= current_qconfig().skip_k_conv:
         return None
 
     lhs, rhs = new_args
@@ -110,56 +108,44 @@ def multiply_rewrite(ref_call, new_args, ctx):
         raise ValueError
 
 
+def _get_expr_kind(anno):
+    if isinstance(anno, QAnnotateExpr):
+        return anno.expr, anno.kind
+    else:
+        return anno, None
+
+
 @register_annotate_function("add")
 def add_rewrite(ref_call, new_args, ctx):
-    cfg = current_qconfig()
-    if _conv_counter() <= cfg.skip_k_conv:
+    if _conv_counter() <= current_qconfig().skip_k_conv:
         return None
 
-    lhs, rhs = new_args
-    if not isinstance(lhs, QAnnotateExpr) and not isinstance(rhs, QAnnotateExpr):
-        # on float domain
+    lhs_expr, lhs_kind = _get_expr_kind(new_args[0])
+    rhs_expr, rhs_kind = _get_expr_kind(new_args[1])
+
+    if lhs_kind is None and rhs_kind is None:
         return None
-    elif not isinstance(lhs, QAnnotateExpr) and rhs.kind == QAnnotateKind.ACTIVATION:
-        # addition for residual, but lhs are calculated on real domain
-        lhs_expr = attach_simulated_quantize(lhs, QAnnotateKind.INPUT)
-        expr = _forward_op(ref_call, [lhs_expr, rhs.expr])
-        return QAnnotateExpr(expr, QAnnotateKind.ACTIVATION)
-    elif lhs.kind == QAnnotateKind.INPUT and not isinstance(rhs, QAnnotateExpr):
-        # TODO ?
-        rhs_expr = attach_simulated_quantize(rhs, QAnnotateKind.WEIGHT)
-        expr = _forward_op(ref_call, [lhs.expr, rhs_expr])
-        return QAnnotateExpr(expr, QAnnotateKind.ACTIVATION)
-    elif lhs.kind == QAnnotateKind.ACTIVATION and not isinstance(rhs, QAnnotateExpr):
-        # the most common situation, e.g. bias add in bn
-        rhs_expr = attach_simulated_quantize(rhs, QAnnotateKind.WEIGHT)
-        expr = _forward_op(ref_call, [lhs.expr, rhs_expr])
-        return QAnnotateExpr(expr, QAnnotateKind.ACTIVATION)
-    elif lhs.kind == QAnnotateKind.INPUT and rhs.kind == QAnnotateKind.ACTIVATION:
-        # addition for residual, but lhs are muti-refered
-        expr = _forward_op(ref_call, [lhs.expr, rhs.expr])
-        return QAnnotateExpr(expr, QAnnotateKind.ACTIVATION)
-    elif lhs.kind == QAnnotateKind.ACTIVATION and rhs.kind == QAnnotateKind.INPUT:
-        # TODO ?
-        expr = _forward_op(ref_call, [lhs.expr, rhs.expr])
-        return QAnnotateExpr(expr, QAnnotateKind.ACTIVATION)
-    elif lhs.kind == QAnnotateKind.ACTIVATION and rhs.kind == QAnnotateKind.ACTIVATION:
-        # addition for residual
-        expr = _forward_op(ref_call, [lhs.expr, rhs.expr])
-        return QAnnotateExpr(expr, QAnnotateKind.ACTIVATION)
+    elif lhs_kind is None and rhs_kind is not None:
+        lhs_expr = attach_simulated_quantize(lhs_expr, QAnnotateKind.INPUT)
+    elif lhs_kind is not None and rhs_kind is None:
+        rhs_expr = attach_simulated_quantize(rhs_expr, QAnnotateKind.WEIGHT)
     else:
-        raise ValueError
+        pass
+
+    expr = _forward_op(ref_call, [lhs_expr, rhs_expr])
+    return QAnnotateExpr(expr, QAnnotateKind.ACTIVATION)
 
 
-@register_annotate_function("nn.relu")
-def relu_rewrite(ref_call, new_args, ctx):
-    cfg = current_qconfig()
-    if _conv_counter() <= cfg.skip_k_conv:
+def identity_rewrite(ref_call, new_args, ctx):
+    if _conv_counter() <= current_qconfig().skip_k_conv:
         return None
 
-    x = new_args[0]
-    if isinstance(x, QAnnotateExpr):
-        expr = _forward_op(ref_call, [x.expr])
-        return QAnnotateExpr(expr, x.kind)
+    x_expr, x_kind = _get_expr_kind(new_args[0])
+    if x_kind is None:
+        return None
     else:
-        return None
+        ret_expr = _forward_op(ref_call, [x_expr])
+        return QAnnotateExpr(ret_expr, x_kind)
+
+
+register_annotate_function("nn.relu", identity_rewrite)

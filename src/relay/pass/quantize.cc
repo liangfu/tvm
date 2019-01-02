@@ -340,9 +340,10 @@ RELAY_REGISTER_OP("add")
 .set_attr<FForwardRewrite>("FQRealizeRewrite", AddRealize);
 
 
-Expr ReluRealize(const Call& ref_call,
-                 const Array<Expr>& new_args,
-                 const NodeRef& ctx) {
+/* \brief do nothing */
+Expr IdentityRealize(const Call& ref_call,
+                     const Array<Expr>& new_args,
+                     const NodeRef& ctx) {
   CHECK_EQ(new_args.size(), 1);
   if (const auto* n = new_args[0].as<QRealizeIntExprNode>()) {
     Expr ret = ForwardOp(ref_call, {n->data});
@@ -353,7 +354,7 @@ Expr ReluRealize(const Call& ref_call,
 }
 
 RELAY_REGISTER_OP("nn.relu")
-.set_attr<FForwardRewrite>("FQRealizeRewrite", ReluRealize);
+.set_attr<FForwardRewrite>("FQRealizeRewrite", IdentityRealize);
 
 
 TVM_REGISTER_API("relay._quantize.realize")
