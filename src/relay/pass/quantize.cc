@@ -24,16 +24,16 @@ namespace quantize {
 
 /*! \brief Attribute for simulated quantize operator */
 struct SimulatedQuantizeAttrs : public tvm::AttrsNode<SimulatedQuantizeAttrs> {
+  int kind;
   bool sign;
   std::string rounding;
-  int kind;
 
   TVM_DECLARE_ATTRS(SimulatedQuantizeAttrs, "relay.attrs.SimulatedQuantizeAttrs") {
+    TVM_ATTR_FIELD(kind)
+        .describe("kind of field, hint for nbit/dtype configuration.");
     TVM_ATTR_FIELD(sign).set_default(true);
     TVM_ATTR_FIELD(rounding).set_default("round")
         .describe("rounding mode. Can be 'floor', 'ceil', 'round'");
-    TVM_ATTR_FIELD(kind)
-        .describe("kind of field.");
   }
 };
 
@@ -70,13 +70,13 @@ RELAY_REGISTER_OP("simulated_quantize")
 .add_type_rel("SimulatedQuantize", SimulatedQuantizeRel);
 
 TVM_REGISTER_API("relay._quantize.simulated_quantize")
-.set_body_typed<Expr(Expr, Expr, Expr, Expr, bool, std::string, int)>(
+.set_body_typed<Expr(Expr, Expr, Expr, Expr, int, bool, std::string)>(
   [](Expr data, Expr dom_scale, Expr clip_min, Expr clip_max,
-     bool sign, std::string rounding, int kind) {
+     int kind, bool sign, std::string rounding) {
     auto attrs = make_node<SimulatedQuantizeAttrs>();
+    attrs->kind = kind;
     attrs->sign = sign;
     attrs->rounding = rounding;
-    attrs->kind = kind;
     static const Op& op = Op::Get("simulated_quantize");
     return CallNode::make(op, {data, dom_scale, clip_min, clip_max}, Attrs(attrs), {});
   });

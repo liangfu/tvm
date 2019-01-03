@@ -20,14 +20,35 @@ namespace tvm {
 namespace relay {
 
 #define TVM_DTYPE_DISPATCH(type, DType, ...)            \
-  if (type == Float(32)) {                              \
+  if (type == Float(64)) {                              \
+    typedef double DType;                               \
+    {__VA_ARGS__}                                       \
+  } else if (type == Float(32)) {                       \
     typedef float DType;                                \
+    {__VA_ARGS__}                                       \
+  } else if (type == Int(64)) {                         \
+    typedef int64_t DType;                              \
+    {__VA_ARGS__}                                       \
+  } else if (type == Int(32)) {                         \
+    typedef int32_t DType;                              \
     {__VA_ARGS__}                                       \
   } else if (type == Int(16)) {                         \
     typedef int16_t DType;                              \
     {__VA_ARGS__}                                       \
-  } else if (type == Int(32)) {                         \
-    typedef int32_t DType;                              \
+  } else if (type == Int(8)) {                          \
+    typedef int8_t DType;                               \
+    {__VA_ARGS__}                                       \
+  } else if (type == UInt(64)) {                        \
+    typedef uint64_t DType;                             \
+    {__VA_ARGS__}                                       \
+  } else if (type == UInt(32)) {                        \
+    typedef uint32_t DType;                             \
+    {__VA_ARGS__}                                       \
+  } else if (type == UInt(16)) {                        \
+    typedef uint16_t DType;                             \
+    {__VA_ARGS__}                                       \
+  } else if (type == UInt(8)) {                         \
+    typedef uint8_t DType;                              \
     {__VA_ARGS__}                                       \
   } else {                                              \
     LOG(FATAL) << "unknown data type " << type;         \

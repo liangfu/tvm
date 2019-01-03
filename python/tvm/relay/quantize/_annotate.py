@@ -32,6 +32,14 @@ def _forward_op(ref_call, args):
         ref_call.op, args, ref_call.attrs, ref_call.type_args)
 
 
+def _get_expr_kind(anno):
+    """Get the expression and QAnnotateKind from QAnnotateExpr or Expr"""
+    if isinstance(anno, QAnnotateExpr):
+        return anno.expr, anno.kind
+    else:
+        return anno, None
+
+
 def register_annotate_function(op_name, frewrite=None, level=10):
     """register a rewrite function for operator, used by annotation.
 
@@ -50,7 +58,7 @@ def register_annotate_function(op_name, frewrite=None, level=10):
 
 
 @register_func("relay.quantize.attach_simulated_quantize")
-def attach_simulated_quantize(data, kind):
+def attach_simulated_quantize(data, kind, sign=True, rounding="round"):
     """Attach a simulated quantize operation after input data expr.
 
     Parameters
@@ -64,8 +72,8 @@ def attach_simulated_quantize(data, kind):
     dom_scale = _expr.var("dom_scale")
     clip_min = _expr.var("clip_min")
     clip_max = _expr.var("clip_max")
-    return _quantize.simulated_quantize(data, dom_scale, clip_min,
-                                        clip_max, True, "round", kind)
+    return _quantize.simulated_quantize(
+        data, dom_scale, clip_min, clip_max, kind, sign, rounding)
 
 
 @register_annotate_function("nn.conv2d")
@@ -76,16 +84,14 @@ def conv2d_rewrite(ref_call, new_args, ctx):
         return None
     _set_conv_counter(cnt + 1)
 
-    lhs, rhs = new_args
-    if isinstance(lhs, QAnnotateExpr):
-        lhs_expr = lhs.expr
-        if lhs.kind != QAnnotateKind.INPUT:
-            lhs_expr = attach_simulated_quantize(lhs_expr, QAnnotateKind.INPUT)
-    else:
-        lhs_expr = attach_simulated_quantize(lhs, QAnnotateKind.INPUT)
+    lhs_expr, lhs_kind = _get_expr_kind(new_args[0])
+    rhs_expr, rhs_kind = _get_expr_kind(new_args[1])
 
-    assert not isinstance(rhs, QAnnotateExpr)
-    rhs_expr = attach_simulated_quantize(rhs, QAnnotateKind.WEIGHT)
+    if lhs_kind is None or lhs_kind != QAnnotateKind.INPUT:
+        lhs_expr = attach_simulated_quantize(lhs_expr, QAnnotateKind.INPUT)
+
+    assert rhs_kind is None
+    rhs_expr = attach_simulated_quantize(rhs_expr, QAnnotateKind.WEIGHT)
 
     expr = _forward_op(ref_call, [lhs_expr, rhs_expr])
     return QAnnotateExpr(expr, QAnnotateKind.ACTIVATION)
@@ -96,23 +102,18 @@ def multiply_rewrite(ref_call, new_args, ctx):
     if _conv_counter() <= current_qconfig().skip_k_conv:
         return None
 
-    lhs, rhs = new_args
-    if not isinstance(lhs, QAnnotateExpr) and not isinstance(rhs, QAnnotateExpr):
+    lhs_expr, lhs_kind = _get_expr_kind(new_args[0])
+    rhs_expr, rhs_kind = _get_expr_kind(new_args[1])
+
+    if lhs_kind is None and rhs_kind is None:
         return None
-    elif lhs.kind == QAnnotateKind.ACTIVATION and not isinstance(rhs, QAnnotateExpr):
-        lhs_expr = attach_simulated_quantize(lhs.expr, QAnnotateKind.INPUT)
-        rhs_expr = attach_simulated_quantize(rhs, QAnnotateKind.WEIGHT)
+    elif lhs_kind == QAnnotateKind.ACTIVATION and rhs_kind is None:
+        lhs_expr = attach_simulated_quantize(lhs_expr, QAnnotateKind.INPUT)
+        rhs_expr = attach_simulated_quantize(rhs_expr, QAnnotateKind.WEIGHT)
         expr = _forward_op(ref_call, [lhs_expr, rhs_expr])
         return QAnnotateExpr(expr, QAnnotateKind.ACTIVATION)
     else:
         raise ValueError
-
-
-def _get_expr_kind(anno):
-    if isinstance(anno, QAnnotateExpr):
-        return anno.expr, anno.kind
-    else:
-        return anno, None
 
 
 @register_annotate_function("add")
@@ -129,8 +130,6 @@ def add_rewrite(ref_call, new_args, ctx):
         lhs_expr = attach_simulated_quantize(lhs_expr, QAnnotateKind.INPUT)
     elif lhs_kind is not None and rhs_kind is None:
         rhs_expr = attach_simulated_quantize(rhs_expr, QAnnotateKind.WEIGHT)
-    else:
-        pass
 
     expr = _forward_op(ref_call, [lhs_expr, rhs_expr])
     return QAnnotateExpr(expr, QAnnotateKind.ACTIVATION)
