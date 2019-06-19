@@ -43,22 +43,22 @@
 #include "cma_api.h"
 
 #ifndef CMA_IOCTL_MAGIC
-#define CMA_IOCTL_MAGIC  0xf2
+#define CMA_IOCTL_MAGIC       0xf2
 #endif
 
-#define CMA_ALLOC_CACHED           _IOC(_IOC_WRITE|_IOC_READ,  CMA_IOCTL_MAGIC, 1, 4)
-#define CMA_ALLOC_NONCACHED         _IOC(_IOC_WRITE|_IOC_READ,  CMA_IOCTL_MAGIC, 2, 4)
+#define CMA_ALLOC_CACHED      _IOC(_IOC_WRITE|_IOC_READ,  CMA_IOCTL_MAGIC, 1, 4)
+#define CMA_ALLOC_NONCACHED   _IOC(_IOC_WRITE|_IOC_READ,  CMA_IOCTL_MAGIC, 2, 4)
 #define CMA_FREE              _IOC(_IOC_WRITE,      CMA_IOCTL_MAGIC, 3, 4)
-#define CMA_GET_PHY_ADDR           _IOC(_IOC_WRITE|_IOC_READ,  CMA_IOCTL_MAGIC, 4, 4)
-#define CMA_GET_SIZE             _IOC(_IOC_WRITE|_IOC_READ,  CMA_IOCTL_MAGIC, 5, 4)
+#define CMA_GET_PHY_ADDR      _IOC(_IOC_WRITE|_IOC_READ,  CMA_IOCTL_MAGIC, 4, 4)
+#define CMA_GET_SIZE          _IOC(_IOC_WRITE|_IOC_READ,  CMA_IOCTL_MAGIC, 5, 4)
 
-#define CMA_IOCTL_MAXNR            5
+#define CMA_IOCTL_MAXNR       5
 
 #ifndef CMA_DEBUG
-  #define CMA_DEBUG       0
+  #define CMA_DEBUG           0
 #endif
 #ifndef DRIVER_NODE_NAME
-  #define DRIVER_NODE_NAME   "cma"
+  #define DRIVER_NODE_NAME    "cma"
 #endif
 
 #if CMA_DEBUG == 1
@@ -75,8 +75,6 @@ void *cma_alloc(size_t size, unsigned ioctl_cmd);
 
 /* Global file descriptor */
 int cma_fd = 0;
-
-
 
 int cma_init(void) {
   __DEBUG("Opening \"/dev/" DRIVER_NODE_NAME "\" file\n");
@@ -101,8 +99,6 @@ int cma_release(void) {
   return 0;
 }
 
-
-
 void *cma_alloc_cached(size_t size) {
   return cma_alloc(size, CMA_ALLOC_CACHED);
 }
@@ -111,13 +107,12 @@ void *cma_alloc_noncached(size_t size) {
   return cma_alloc(size, CMA_ALLOC_NONCACHED);
 }
 
-
 int cma_free(void *mem) {
   unsigned data, v_addr;
 
   /* save user space pointer value */
-  data   = *((unsigned int*)(&mem)); // (unsigned)mem;
-  v_addr = *((unsigned int*)(&mem)); // (unsigned)mem;
+  data   = (unsigned)mem;
+  v_addr = (unsigned)mem;
 
   if ( ioctl(cma_fd, CMA_GET_SIZE, &data) == -1 ) {
     __DEBUG("cma_free - ioctl command unsuccsessful - 0\n");
@@ -137,12 +132,11 @@ int cma_free(void *mem) {
   return 0;
 }
 
-
 unsigned cma_get_phy_addr(void *mem) {
   unsigned data;
 
   /* save user space pointer value */
-  data = *((unsigned int*)(&mem)); // (unsigned)mem;
+  data = (unsigned)mem;
 
   /* get physical address */
   if ( ioctl(cma_fd, CMA_GET_PHY_ADDR, &data) == -1 ) {
@@ -171,7 +165,6 @@ void *cma_alloc(size_t size, unsigned ioctl_cmd) {
   }
 
   /* at this point phy_addr is written to data */
-
 
   /* mmap memory */
   mem = mmap(NULL, size, PROT_WRITE | PROT_READ, MAP_SHARED, cma_fd, data);

@@ -121,6 +121,8 @@ def main():
         cflags_str = " ".join(pkg.cflags)
         if cfg["TARGET"] == "pynq":
             cflags_str += " -DVTA_TARGET_PYNQ"
+        elif cfg["TARGET"] == "de10-nano":
+            cflags_str += " -DVTA_TARGET_DE10_NANO"
         print(cflags_str)
 
     if args.ldflags:

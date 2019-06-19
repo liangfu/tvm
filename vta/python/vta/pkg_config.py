@@ -80,6 +80,12 @@ class PkgConfig(object):
                 "-L/opt/python3.6/lib/python3.6/site-packages/pynq/drivers/",
                 "-L/opt/python3.6/lib/python3.6/site-packages/pynq/lib/",
                 "-l:libcma.so"]
+        # elif self.target == "de10-nano":
+        #     self.ldflags = [
+        #         "-L/usr/lib",
+        #         "-L/opt/python3.6/lib/python3.6/site-packages/pynq/drivers/",
+        #         "-L/opt/python3.6/lib/python3.6/site-packages/pynq/lib/",
+        #         "-l:libcma.so"]
         else:
             self.ldflags = []
 

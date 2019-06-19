@@ -16,25 +16,40 @@
 # under the License.
 
 CC ?= g++
-CFLAGS = -Wall -O3 -std=c++11 -I/usr/include
-LDFLAGS = -L/usr/lib -L/opt/python3.6/lib/python3.6/site-packages/pynq/lib/
-LIBS = -l:libsds_lib.so -l:libdma.so -lstdc++
+CFLAGS = -Wall -O2 -std=c++11
+LDFLAGS =
+EXECUTABLE = metal_test
 INCLUDE_DIR = ../../../include
-DRIVER_DIR = ../../../src/pynq
 TESTLIB_DIR = ../common
-VPATH = $(DRIVER_DIR):$(TESTLIB_DIR)
-SOURCES = pynq_driver.cc test_lib.cc
-OBJECTS = pynq_driver.o test_lib.o metal_test.o
-EXECUTABLE = vta
+LIBS = -lstdc++
+SOURCES = test_lib.cc
+OBJECTS = test_lib.o metal_test.o
 
-# Include VTA config
 VTA_CONFIG = python ../../../config/vta_config.py
-CFLAGS += `${VTA_CONFIG} --cflags`
-LDFLAGS += `${VTA_CONFIG} --ldflags`
 VTA_TARGET := $(shell ${VTA_CONFIG} --target)
 
+ifeq (${VTA_TARGET},pynq)
+  CFLAGS += -I/usr/include
+  LDFLAGS += -L/usr/lib -L/opt/python3.6/lib/python3.6/site-packages/pynq/lib/
+  LIBS += -l:libsds_lib.so -l:libdma.so
+  DRIVER_DIR = ../../../src/pynq
+  SOURCES += pynq_driver.cc
+  OBJECTS += pynq_driver.o
+endif
+ifeq (${VTA_TARGET},de10-nano)
+  LIBS +=
+  DRIVER_DIR = ../../../src/de10-nano
+  SOURCES += de10-nano_driver.cc cma_api.cc
+  OBJECTS += de10-nano_driver.o cma_api.o
+endif
+
+# Include VTA config
+VPATH = $(DRIVER_DIR):$(TESTLIB_DIR)
+CFLAGS += `${VTA_CONFIG} --cflags`
+LDFLAGS += `${VTA_CONFIG} --ldflags`
+
 # Define flags
-CFLAGS += -I $(INCLUDE_DIR) -DNO_SIM -DVTA_DEBUG=0
+CFLAGS += -I$(INCLUDE_DIR) -DNO_SIM -DVTA_DEBUG=0
 
 # All Target
 all: $(EXECUTABLE)

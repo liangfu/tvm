@@ -26,6 +26,7 @@ void *VTAMapRegister(uint32_t addr, size_t length);
 void VTAUnmapRegister(void *vta, size_t length);
 void VTAWriteMappedReg(void* base_addr, uint32_t offset, uint32_t val);
 uint32_t VTAReadMappedReg(void* base_addr, uint32_t offset);
+void VTAProgram(const char* bitstream);
 
 /*! \brief (DE10_Nano only) Bitstream destination file path */
 #define VTA_DE10_NANO_BS_XDEVCFG "/dev/fpga0"
