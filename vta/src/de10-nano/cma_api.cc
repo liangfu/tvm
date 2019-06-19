@@ -1,6 +1,23 @@
-/* cma_api.c - API for contigous memory allocation driver.
- *
- *
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/*
  * The MIT License (MIT)
  *
  * COPYRIGHT (C) 2017 Institute of Electronics and Computer Science (EDI), Latvia.
@@ -24,10 +41,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *
- *
- * DESCRIPTION:
- * For API interface documentation refer to "include/cma_api.h" header file.
- *
+ */
+
+/*!
+ *  Copyright (c) 2018 by Contributors
+ * \file cma_api.cc
+ * \brief Application layer implementation for contigous memory allocation.
  */
 
 #include <stdio.h>
@@ -48,7 +67,7 @@
 
 #define CMA_ALLOC_CACHED      _IOC(_IOC_WRITE|_IOC_READ,  CMA_IOCTL_MAGIC, 1, 4)
 #define CMA_ALLOC_NONCACHED   _IOC(_IOC_WRITE|_IOC_READ,  CMA_IOCTL_MAGIC, 2, 4)
-#define CMA_FREE              _IOC(_IOC_WRITE,      CMA_IOCTL_MAGIC, 3, 4)
+#define CMA_FREE              _IOC(_IOC_WRITE,            CMA_IOCTL_MAGIC, 3, 4)
 #define CMA_GET_PHY_ADDR      _IOC(_IOC_WRITE|_IOC_READ,  CMA_IOCTL_MAGIC, 4, 4)
 #define CMA_GET_SIZE          _IOC(_IOC_WRITE|_IOC_READ,  CMA_IOCTL_MAGIC, 5, 4)
 
