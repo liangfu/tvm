@@ -1,4 +1,4 @@
-PATH_SETTINGS?=$(PWD)/settings.mak
+PATH_SETTINGS?=$(PWD)/settings.mk
 # Driver configuration file
 include $(PATH_SETTINGS)
 
