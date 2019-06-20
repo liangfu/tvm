@@ -42,7 +42,7 @@ void VTAMemFree(void* buf) {
 }
 
 vta_phy_addr_t VTAMemGetPhyAddr(void* buf) {
-  return cma_get_phy_addr(buf);
+  return cma_get_phy_addr(buf) + 0x80000000;
 }
 
 void VTAFlushCache(vta_phy_addr_t buf, int size) {
