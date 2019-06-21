@@ -57,7 +57,7 @@ uint64_t vta(
 #endif
 
   // Program VTA
-  VTAProgram(bitstream);
+  // VTAProgram(bitstream);
   // Get VTA handles
   void* vta_host_handle = VTAMapRegister(VTA_FETCH_ADDR, VTA_RANGE);
 

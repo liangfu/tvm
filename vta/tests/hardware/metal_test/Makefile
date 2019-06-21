@@ -15,8 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 
+DEBUG = 1
+
 CC ?= g++
-CFLAGS = -Wall -O2 -std=c++11
+ifeq (${DEBUG},1)
+  CFLAGS = -Wall -O0 -g -std=c++11
+else
+  CFLAGS = -Wall -O2 -std=c++11
+endif
 LDFLAGS =
 EXECUTABLE = metal_test
 INCLUDE_DIR = ../../../include
@@ -37,7 +43,6 @@ ifeq (${VTA_TARGET},pynq)
   OBJECTS += pynq_driver.o
 endif
 ifeq (${VTA_TARGET},de10-nano)
-  LIBS +=
   DRIVER_DIR = ../../../src/de10-nano
   SOURCES += de10-nano_driver.cc cma_api.cc
   OBJECTS += de10-nano_driver.o cma_api.o
