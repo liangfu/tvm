@@ -64,7 +64,7 @@ void VTAProgram(const char* bitstream);
 /*! \brief VTA configuration register auto-restart value */
 #define VTA_AUTORESTART 0x81
 /*! \brief VTA configuration register done value */
-#define VTA_DONE 0x1
+#define VTA_DONE 0x2
 
 /*! \brief VTA fetch stage configuration register address
 *   from auto-generated FETCH_0_S_AXI_CONTROL_BUS_BASEADDR define

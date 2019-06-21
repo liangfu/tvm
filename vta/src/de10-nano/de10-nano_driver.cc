@@ -86,51 +86,33 @@ class VTADevice {
  public:
   VTADevice() {
     // VTA stage handles
-    vta_fetch_handle_ = VTAMapRegister(VTA_FETCH_ADDR, VTA_RANGE);
-    vta_load_handle_ = VTAMapRegister(VTA_LOAD_ADDR, VTA_RANGE);
-    vta_compute_handle_ = VTAMapRegister(VTA_COMPUTE_ADDR, VTA_RANGE);
-    vta_store_handle_ = VTAMapRegister(VTA_STORE_ADDR, VTA_RANGE);
+    vta_host_handle_ = VTAMapRegister(VTA_FETCH_ADDR, VTA_RANGE);
   }
 
   ~VTADevice() {
     // Close VTA stage handle
-    VTAUnmapRegister(vta_fetch_handle_, VTA_RANGE);
-    VTAUnmapRegister(vta_load_handle_, VTA_RANGE);
-    VTAUnmapRegister(vta_compute_handle_, VTA_RANGE);
-    VTAUnmapRegister(vta_store_handle_, VTA_RANGE);
+    VTAUnmapRegister(vta_host_handle_, VTA_RANGE);
   }
 
   int Run(vta_phy_addr_t insn_phy_addr,
           uint32_t insn_count,
           uint32_t wait_cycles) {
-    // NOTE: Register address map is derived from the auto-generated
-    // driver files available under hardware/build/vivado/<design>/export/driver
-    // FETCH @ 0x10 : Data signal of insn_count_V
-    VTAWriteMappedReg(vta_fetch_handle_, 0x10, insn_count);
-    // FETCH @ 0x18 : Data signal of insns_V
-    VTAWriteMappedReg(vta_fetch_handle_, 0x18, insn_phy_addr);
-    // LOAD @ 0x10 : Data signal of inputs_V
-    VTAWriteMappedReg(vta_load_handle_, 0x10, 0);
-    // LOAD @ 0x18 : Data signal of weight_V
-    VTAWriteMappedReg(vta_load_handle_, 0x18, 0);
-    // COMPUTE @ 0x20 : Data signal of uops_V
-    VTAWriteMappedReg(vta_compute_handle_, 0x20, 0);
-    // COMPUTE @ 0x28 : Data signal of biases_V
-    VTAWriteMappedReg(vta_compute_handle_, 0x28, 0);
-    // STORE @ 0x10 : Data signal of outputs_V
-    VTAWriteMappedReg(vta_store_handle_, 0x10, 0);
+    VTAWriteMappedReg(vta_host_handle_, 0x10, insn_count);
+    VTAWriteMappedReg(vta_host_handle_, 0x18, insn_phy_addr);
+    VTAWriteMappedReg(vta_host_handle_, 0x10, 0);
+    VTAWriteMappedReg(vta_host_handle_, 0x18, 0);
+    VTAWriteMappedReg(vta_host_handle_, 0x20, 0);
+    VTAWriteMappedReg(vta_host_handle_, 0x28, 0);
+    VTAWriteMappedReg(vta_host_handle_, 0x10, 0);
 
     // VTA start
-    VTAWriteMappedReg(vta_fetch_handle_, 0x0, VTA_START);
-    VTAWriteMappedReg(vta_load_handle_, 0x0, VTA_AUTORESTART);
-    VTAWriteMappedReg(vta_compute_handle_, 0x0, VTA_AUTORESTART);
-    VTAWriteMappedReg(vta_store_handle_, 0x0, VTA_AUTORESTART);
+    VTAWriteMappedReg(vta_host_handle_, 0x0, VTA_START);
 
     // Loop until the VTA is done
     unsigned t, flag = 0;
     for (t = 0; t < wait_cycles; ++t) {
-      flag = VTAReadMappedReg(vta_compute_handle_, 0x18);
-      if (flag == VTA_DONE) break;
+      flag = VTAReadMappedReg(vta_host_handle_, 0x18);
+      if (flag & VTA_DONE) break;
       std::this_thread::yield();
     }
     // Report error if timeout
@@ -139,10 +121,7 @@ class VTADevice {
 
  private:
   // VTA handles (register maps)
-  void* vta_fetch_handle_{nullptr};
-  void* vta_load_handle_{nullptr};
-  void* vta_compute_handle_{nullptr};
-  void* vta_store_handle_{nullptr};
+  void* vta_host_handle_{nullptr};
 };
 
 VTADeviceHandle VTADeviceAlloc() {

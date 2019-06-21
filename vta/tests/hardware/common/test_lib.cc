@@ -59,10 +59,7 @@ uint64_t vta(
   // Program VTA
   VTAProgram(bitstream);
   // Get VTA handles
-  void* vta_fetch_handle = VTAMapRegister(VTA_FETCH_ADDR, VTA_RANGE);
-  void* vta_load_handle = VTAMapRegister(VTA_LOAD_ADDR, VTA_RANGE);
-  void* vta_compute_handle = VTAMapRegister(VTA_COMPUTE_ADDR, VTA_RANGE);
-  void* vta_store_handle = VTAMapRegister(VTA_STORE_ADDR, VTA_RANGE);
+  void* vta_host_handle = VTAMapRegister(VTA_FETCH_ADDR, VTA_RANGE);
 
   // Physical address pointers
   uint32_t insn_phy = insns ? VTAMemGetPhyAddr(insns) : 0;
@@ -78,30 +75,40 @@ uint64_t vta(
 
   clock_gettime(CLOCK_REALTIME, &start);
 
-  // FETCH @ 0x10 : Data signal of insn_count_V
-  VTAWriteMappedReg(vta_fetch_handle, 0x10, insn_count);
-  // FETCH @ 0x18 : Data signal of insns_V
-  if (insns) VTAWriteMappedReg(vta_fetch_handle, 0x18, insn_phy);
-  // LOAD @ 0x10 : Data signal of inputs_V
-  if (inputs) VTAWriteMappedReg(vta_load_handle, 0x10, input_phy);
-  // LOAD @ 0x18 : Data signal of weight_V
-  if (weights) VTAWriteMappedReg(vta_load_handle, 0x18, weight_phy);
-  // COMPUTE @ 0x20 : Data signal of uops_V
-  if (uops) VTAWriteMappedReg(vta_compute_handle, 0x20, uop_phy);
-  // COMPUTE @ 0x28 : Data signal of biases_V
-  if (biases) VTAWriteMappedReg(vta_compute_handle, 0x28, bias_phy);
-  // STORE @ 0x10 : Data signal of outputs_V
-  if (outputs) VTAWriteMappedReg(vta_store_handle, 0x10, output_phy);
-
+  VTAWriteMappedReg(vta_host_handle, 0x04, 0);
+  VTAWriteMappedReg(vta_host_handle, 0x08, insn_count);
+  if (insns) {
+    VTAWriteMappedReg(vta_host_handle, 0x0c, insn_phy);
+    VTAWriteMappedReg(vta_host_handle, 0x10, 0);
+  }
+  if (uops) {
+    VTAWriteMappedReg(vta_host_handle, 0x14, uop_phy);
+    VTAWriteMappedReg(vta_host_handle, 0x18, 0);
+  }
+  if (inputs) {
+    VTAWriteMappedReg(vta_host_handle, 0x1c, input_phy);
+    VTAWriteMappedReg(vta_host_handle, 0x20, 0);
+  }
+  if (weights) {
+    VTAWriteMappedReg(vta_host_handle, 0x24, weight_phy);
+    VTAWriteMappedReg(vta_host_handle, 0x28, 0);
+  }
+  if (biases) {
+    VTAWriteMappedReg(vta_host_handle, 0x2c, bias_phy);
+    VTAWriteMappedReg(vta_host_handle, 0x30, 0);
+  }
+  if (outputs) {
+    VTAWriteMappedReg(vta_host_handle, 0x34, output_phy);
+    VTAWriteMappedReg(vta_host_handle, 0x38, 0);
+  }
+  
   // VTA start
-  VTAWriteMappedReg(vta_fetch_handle, 0x0, 0x1);
-  VTAWriteMappedReg(vta_load_handle, 0x0, 0x81);
-  VTAWriteMappedReg(vta_compute_handle, 0x0, 0x81);
-  VTAWriteMappedReg(vta_store_handle, 0x0, 0x81);
+  VTAWriteMappedReg(vta_host_handle, 0x0, 0x1);
 
   int flag = 0, t = 0;
   for (t = 0; t < 10000000; ++t) {
-    flag = VTAReadMappedReg(vta_compute_handle, 0x18);
+    // flag = VTAReadMappedReg(vta_compute_handle, 0x18);
+    flag = VTAReadMappedReg(vta_host_handle, 0x00);
     if (flag & VTA_DONE) break;
   }
 
@@ -117,10 +124,7 @@ uint64_t vta(
   t_fpga = 1000000000ULL * (stop.tv_sec - start.tv_sec) + (stop.tv_nsec - start.tv_nsec);
 
   // Unmap VTA register
-  VTAUnmapRegister(vta_fetch_handle, VTA_RANGE);
-  VTAUnmapRegister(vta_load_handle, VTA_RANGE);
-  VTAUnmapRegister(vta_compute_handle, VTA_RANGE);
-  VTAUnmapRegister(vta_store_handle, VTA_RANGE);
+  VTAUnmapRegister(vta_host_handle, VTA_RANGE);
 
   return t_fpga;
 }
