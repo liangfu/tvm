@@ -1,6 +1,4 @@
-/* cma_api.c - API for contigous memory allocation driver.
- *
- *
+/*
  * The MIT License (MIT)
  *
  * COPYRIGHT (C) 2017 Institute of Electronics and Computer Science (EDI), Latvia.
@@ -24,10 +22,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *
- *
- * DESCRIPTION:
- * For API interface documentation refer to "include/cma_api.h" header file.
- *
+ */
+
+/*!
+ *  Copyright (c) 2018 by Contributors
+ * \file cma_api.cc
+ * \brief Application layer implementation for contigous memory allocation.
  */
 
 #include <stdio.h>
@@ -48,7 +48,7 @@
 
 #define CMA_ALLOC_CACHED      _IOC(_IOC_WRITE|_IOC_READ,  CMA_IOCTL_MAGIC, 1, 4)
 #define CMA_ALLOC_NONCACHED   _IOC(_IOC_WRITE|_IOC_READ,  CMA_IOCTL_MAGIC, 2, 4)
-#define CMA_FREE              _IOC(_IOC_WRITE,      CMA_IOCTL_MAGIC, 3, 4)
+#define CMA_FREE              _IOC(_IOC_WRITE,            CMA_IOCTL_MAGIC, 3, 4)
 #define CMA_GET_PHY_ADDR      _IOC(_IOC_WRITE|_IOC_READ,  CMA_IOCTL_MAGIC, 4, 4)
 #define CMA_GET_SIZE          _IOC(_IOC_WRITE|_IOC_READ,  CMA_IOCTL_MAGIC, 5, 4)
 
