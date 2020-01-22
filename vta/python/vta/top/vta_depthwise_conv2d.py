@@ -59,7 +59,7 @@ def packed_depthwise_conv2d(cfg,
     owidth = topi.util.get_const_int((pad_data.shape[3] - kshape[3]) // strides[1] + 1)
     oshape = (ishape[0], ishape[1] * multiplier, oheight, owidth, ishape[4], ishape[5])
 
-    assert blocksize == 16
+    assert blocksize == 1
     assert kshape[2] == 4 and kshape[3] == 4
 
     print("--")
@@ -174,7 +174,7 @@ def schedule_packed_depthwise_conv2d(cfg, outs):
     x_co0, x_co1 = cfg['tile_co'].apply(s, output, x_co)
     x_i0, x_i1 = cfg['tile_h'].apply(s, output, x_i)
     x_j0, x_j1 = cfg['tile_w'].apply(s, output, x_j)
-    s[output].reorder(x_bo, x_i0, x_co0, x_j0, x_co1, x_i1, x_j1, x_bi, x_ci)
+    s[output].reorder(x_bo, x_co0, x_i0, x_j0, x_co1, x_i1, x_j1, x_bi, x_ci)
     store_pt = x_j0
     
     # set all compute scopes
@@ -189,7 +189,7 @@ def schedule_packed_depthwise_conv2d(cfg, outs):
     x_bo, x_co, x_i, x_j, x_bi, x_ci = s[conv2d_stage].op.axis
     ko, ki = s[conv2d_stage].op.reduce_axis
     s[conv2d_stage].reorder(x_bo, ko, x_j, x_co, x_i, x_bi, x_ci, ki)
-
+    
     # Use VTA instructions
     # s[cdata].pragma(s[cdata].op.axis[0], env.dma_copy)
     # s[ckernel].pragma(s[ckernel].op.axis[0], env.dma_copy)

@@ -35,9 +35,6 @@ from vta.testing import simulator
 
 np.random.seed(2)
 
-# Workload = namedtuple("DepthwiseConv2DWorkload",
-#                       ['batch', 'height', 'width', 'in_filter', 'out_filter', 'groups',
-#                        'hkernel', 'wkernel', 'hpad', 'wpad', 'hstride', 'wstride'])
 Workload = namedtuple('Workload',
                       ['batch', 'height', 'width', 'in_filter', 'out_filter', 'multiplier',
                        'hkernel', 'wkernel', 'hpad', 'wpad', 'hstride', 'wstride'])
@@ -97,11 +94,16 @@ def run_depthwise_conv2d(env, remote, wl, target,
     w_shape = (wl.out_filter, wl.multiplier, wl.hkernel, wl.wkernel)
     b_shape = (wl.batch, wl.out_filter, 1, 1)
     if data_pack:
-        data_shape = (wl.batch//env.BATCH, wl.in_filter//env.BLOCK_IN,
-                      wl.height, wl.width, env.BATCH, env.BLOCK_IN)
+        # data_shape = (wl.batch//env.BATCH, wl.in_filter//env.BLOCK_IN,
+        #               wl.height, wl.width, env.BATCH, env.BLOCK_IN)
+        assert wl.in_filter % env.BLOCK_IN == 0
+        data_shape = (wl.batch//env.BATCH, wl.in_filter,
+                      wl.height, wl.width, env.BATCH, 1)
         assert wl.hkernel * wl.wkernel <= env.BLOCK_IN
-        kernel_shape = (wl.out_filter//env.BLOCK_OUT, wl.multiplier,
-                        wl.hkernel, wl.wkernel, env.BLOCK_OUT, 1)
+        # kernel_shape = (wl.out_filter//env.BLOCK_OUT, wl.multiplier,
+        #                 wl.hkernel, wl.wkernel, env.BLOCK_OUT, 1)
+        kernel_shape = (wl.out_filter, wl.multiplier,
+                        wl.hkernel, wl.wkernel, 1, 1)
         bias_shape = (wl.batch//env.BATCH, wl.out_filter//env.BLOCK_OUT,
                       1, 1, env.BATCH, env.BLOCK_OUT)
         # print("a_shape={}, w_shape={}, b_shape={}".format(str(a_shape), str(w_shape), str(b_shape)))
@@ -147,12 +149,21 @@ def run_depthwise_conv2d(env, remote, wl, target,
     # Data in original format
     data_np, kernel_np, bias_np, res_ref = get_ref_data()
     if data_pack:
+        # data_np = data_np.reshape(
+        #     wl.batch // env.BATCH, env.BATCH,
+        #     wl.in_filter // env.BLOCK_IN, env.BLOCK_IN,
+        #     wl.height, wl.width).transpose((0, 2, 4, 5, 1, 3))
+        assert wl.in_filter % env.BLOCK_IN == 0
         data_np = data_np.reshape(
             wl.batch // env.BATCH, env.BATCH,
-            wl.in_filter // env.BLOCK_IN, env.BLOCK_IN,
+            wl.in_filter, 1,
             wl.height, wl.width).transpose((0, 2, 4, 5, 1, 3))
+        # kernel_np = kernel_np.reshape(
+        #     wl.out_filter // env.BLOCK_OUT, env.BLOCK_OUT,
+        #     wl.multiplier, 1,
+        #     wl.hkernel, wl.wkernel).transpose((0, 2, 4, 5, 1, 3))
         kernel_np = kernel_np.reshape(
-            wl.out_filter // env.BLOCK_OUT, env.BLOCK_OUT,
+            wl.out_filter, 1,
             wl.multiplier, 1,
             wl.hkernel, wl.wkernel).transpose((0, 2, 4, 5, 1, 3))
         bias_np = bias_np.reshape(
@@ -235,7 +246,7 @@ def run_depthwise_conv2d(env, remote, wl, target,
         # print(res_orig[0,0,:5,:5])
         # print(res_orig[0,:,0,0])
         # print("--")
-        # print(res_ref[0,1,:5,:5])
+        # print(res_ref[0,0,:5,:5])
         # print(res_ref[0,:,0,0])
         np.testing.assert_allclose(res_orig, res_ref)
         correct = np.allclose(res_orig, res_ref)
@@ -246,7 +257,7 @@ def run_depthwise_conv2d(env, remote, wl, target,
         device = "CPU"
     elif "vta" in target.keys:
         device = "VTA"
-    print("%s GROUP CONV2D TEST %s: Time cost = %g sec/op, %g GOPS" % (device, status, cost.mean, gops))
+    print("%s DEPTHWISE CONV2D TEST %s: Time cost = %g sec/op, %g GOPS" % (device, status, cost.mean, gops))
 
     return correct, cost, stats
 
