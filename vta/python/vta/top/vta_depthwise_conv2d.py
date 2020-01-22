@@ -149,23 +149,23 @@ def schedule_packed_depthwise_conv2d(cfg, outs):
     env = get_env()
     
     # setup pad
-    if pad_data is not None:
-        cdata = pad_data
-        s[pad_data].set_scope(env.wgt_scope)
-    else:
-        cdata = s.cache_read(data, env.wgt_scope, [conv2d_stage])
-    ckernel = s.cache_read(kernel, env.inp_scope, [conv2d_stage])
-    s[conv2d_stage].set_scope(env.acc_scope)
+    # if pad_data is not None:
+    #     cdata = pad_data
+    #     s[pad_data].set_scope(env.wgt_scope)
+    # else:
+    #     cdata = s.cache_read(data, env.wgt_scope, [conv2d_stage])
+    # ckernel = s.cache_read(kernel, env.inp_scope, [conv2d_stage])
+    # s[conv2d_stage].set_scope(env.acc_scope)
     
     # cache read input
-    cache_read_ewise = []
-    for consumer, tensor in ewise_inputs:
-        cache_read_ewise.append(s.cache_read(tensor, env.acc_scope, [consumer]))
+    # cache_read_ewise = []
+    # for consumer, tensor in ewise_inputs:
+    #     cache_read_ewise.append(s.cache_read(tensor, env.acc_scope, [consumer]))
     
     # set ewise scope
-    for op in ewise_ops:
-        s[op].set_scope(env.acc_scope)
-        s[op].pragma(s[op].op.axis[0], env.alu)
+    # for op in ewise_ops:
+    #     s[op].set_scope(env.acc_scope)
+    #     s[op].pragma(s[op].op.axis[0], env.alu)
     for op in const_ops:
         s[op].compute_inline()
     
@@ -182,18 +182,18 @@ def schedule_packed_depthwise_conv2d(cfg, outs):
     for op in ewise_ops:
         s[op].compute_at(s[output], store_pt)
     
-    for tensor in cache_read_ewise:
-        s[tensor].compute_at(s[output], store_pt)
-        s[tensor].pragma(s[tensor].op.axis[0], env.dma_copy)
+    # for tensor in cache_read_ewise:
+    #     s[tensor].compute_at(s[output], store_pt)
+    #     s[tensor].pragma(s[tensor].op.axis[0], env.dma_copy)
     
     x_bo, x_co, x_i, x_j, x_bi, x_ci = s[conv2d_stage].op.axis
     ko, ki = s[conv2d_stage].op.reduce_axis
     s[conv2d_stage].reorder(x_bo, ko, x_j, x_co, x_i, x_bi, x_ci, ki)
 
     # Use VTA instructions
-    s[cdata].pragma(s[cdata].op.axis[0], env.dma_copy)
-    s[ckernel].pragma(s[ckernel].op.axis[0], env.dma_copy)
-    s[conv2d_stage].tensorize(x_bi, env.gemm)
-    s[output].pragma(x_co1, env.dma_copy)
+    # s[cdata].pragma(s[cdata].op.axis[0], env.dma_copy)
+    # s[ckernel].pragma(s[ckernel].op.axis[0], env.dma_copy)
+    # s[conv2d_stage].tensorize(x_bi, env.gemm)
+    # s[output].pragma(x_co1, env.dma_copy)
 
     return s
