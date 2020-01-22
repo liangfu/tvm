@@ -33,6 +33,7 @@ from vta import program_fpga, reconfig_runtime
 import vta.testing
 from vta.testing import simulator
 
+np.random.seed(2)
 
 # Workload = namedtuple("DepthwiseConv2DWorkload",
 #                       ['batch', 'height', 'width', 'in_filter', 'out_filter', 'groups',
@@ -46,27 +47,25 @@ env = vta.get_env()
 
 # MobileNet workloads
 mobilenet_wkls = [
-    ('mobilenet.D1', Workload(env.BATCH, 112, 112,   32,   32, 3, 3, 1, 1, 1, 1, 1)),
-    ('mobilenet.D2', Workload(env.BATCH, 112, 112,   64,   64, 3, 3, 1, 1, 1, 2, 2)),
-    ('mobilenet.D3', Workload(env.BATCH,  56,  56,  128,  128, 3, 3, 1, 1, 1, 1, 1)),
-    ('mobilenet.D4', Workload(env.BATCH,  56,  56,  128,  128, 3, 3, 1, 1, 1, 2, 2)),
-    ('mobilenet.D5', Workload(env.BATCH,  28,  28,  256,  256, 3, 3, 1, 1, 1, 1, 1)),
-    ('mobilenet.D6', Workload(env.BATCH,  28,  28,  256,  256, 3, 3, 1, 1, 1, 2, 2)),
-    ('mobilenet.D7', Workload(env.BATCH,  14,  14,  512,  512, 3, 3, 1, 1, 1, 1, 1)),
-    ('mobilenet.D8', Workload(env.BATCH,  14,  14,  512,  512, 3, 3, 1, 1, 1, 2, 2)),
-    ('mobilenet.D9', Workload(env.BATCH,   7,  7,  1024, 1024, 3, 3, 1, 1, 1, 1, 1)),
+    # MobileNetV1
+    ('mobilenet.D1', Workload(env.BATCH, 112, 112,   32,   32, 1, 3, 3, 1, 1, 1, 1)),
+    # ('mobilenet.D2', Workload(env.BATCH, 112, 112,   64,   64, 1, 3, 3, 1, 1, 2, 2)),
+    # ('mobilenet.D3', Workload(env.BATCH,  56,  56,  128,  128, 1, 3, 3, 1, 1, 1, 1)),
+    # ('mobilenet.D4', Workload(env.BATCH,  56,  56,  128,  128, 1, 3, 3, 1, 1, 2, 2)),
+    # ('mobilenet.D5', Workload(env.BATCH,  28,  28,  256,  256, 1, 3, 3, 1, 1, 1, 1)),
+    # ('mobilenet.D6', Workload(env.BATCH,  28,  28,  256,  256, 1, 3, 3, 1, 1, 2, 2)),
+    # ('mobilenet.D7', Workload(env.BATCH,  14,  14,  512,  512, 1, 3, 3, 1, 1, 1, 1)),
+    # ('mobilenet.D8', Workload(env.BATCH,  14,  14,  512,  512, 1, 3, 3, 1, 1, 2, 2)),
+    # ('mobilenet.D9', Workload(env.BATCH,   7,  7,  1024, 1024, 1, 3, 3, 1, 1, 1, 1)),
+    # MobileNetV2
+    # ('mobilenetv2.D1', Workload(env.BATCH, 112, 112,   32,   32, 1, 3, 3, 1, 1, 1, 1)),
+    # ('mobilenetv2.D2', Workload(env.BATCH, 112, 112,   24,   24, 6, 3, 3, 1, 1, 2, 2)),
+    # ('mobilenetv2.D3', Workload(env.BATCH,  56,  56,   32,   32, 6, 3, 3, 1, 1, 1, 1)),
+    # ('mobilenetv2.D4', Workload(env.BATCH,  28,  28,   64,   64, 6, 3, 3, 1, 1, 2, 2)),
+    # ('mobilenetv2.D5', Workload(env.BATCH,  14,  14,   96,   96, 6, 3, 3, 1, 1, 1, 1)),
+    # ('mobilenetv2.D6', Workload(env.BATCH,  14,  14,  160,  160, 6, 3, 3, 1, 1, 2, 2)),
+    # ('mobilenetv2.D7', Workload(env.BATCH,   7,  7,   320,  320, 6, 3, 3, 1, 1, 1, 1)),
 ]
-
-# mobilenet workloads
-# depthwise_conv2d_with_workload_nchw(1, 32, 112, 1, 3, 1, "SAME")
-# depthwise_conv2d_with_workload_nchw(1, 64, 112, 1, 3, 2, "SAME")
-# depthwise_conv2d_with_workload_nchw(1, 128, 56, 1, 3, 1, "SAME")
-# depthwise_conv2d_with_workload_nchw(1, 128, 56, 1, 3, 2, "SAME")
-# depthwise_conv2d_with_workload_nchw(1, 256, 28, 1, 3, 1, "SAME")
-# depthwise_conv2d_with_workload_nchw(1, 256, 28, 1, 3, 2, "SAME")
-# depthwise_conv2d_with_workload_nchw(1, 512, 14, 1, 3, 1, "SAME")
-# depthwise_conv2d_with_workload_nchw(1, 512, 14, 1, 3, 2, "SAME")
-# depthwise_conv2d_with_workload_nchw(1, 1024, 7, 1, 3, 1, "SAME")
 
 # FIXME: we need a custom clip operator to circumvent a pattern detection limitation
 @tvm.tag_scope(tag=topi.tag.ELEMWISE)
@@ -79,7 +78,7 @@ def my_clip(x, a_min, a_max):
     return x
 
 def run_depthwise_conv2d(env, remote, wl, target,
-                     check_correctness=True, print_ir=False,
+                     check_correctness=True, print_ir=True,
                      samples=4):
 
     # Workload assertions
@@ -100,12 +99,13 @@ def run_depthwise_conv2d(env, remote, wl, target,
     if data_pack:
         data_shape = (wl.batch//env.BATCH, wl.in_filter//env.BLOCK_IN,
                       wl.height, wl.width, env.BATCH, env.BLOCK_IN)
+        assert wl.hkernel * wl.wkernel <= env.BLOCK_IN
         kernel_shape = (wl.out_filter//env.BLOCK_OUT, wl.multiplier,
-                        wl.hkernel, wl.wkernel, env.BLOCK_OUT, env.BLOCK_IN)
+                        wl.hkernel, wl.wkernel, env.BLOCK_OUT, 1)
         bias_shape = (wl.batch//env.BATCH, wl.out_filter//env.BLOCK_OUT,
                       1, 1, env.BATCH, env.BLOCK_OUT)
-        print("a_shape={}, w_shape={}, b_shape={}".format(str(a_shape), str(w_shape), str(b_shape)))
-        print("data_shape={}, kernel_shape={}, bias_shape={}".format(str(data_shape), str(kernel_shape), str(bias_shape)))
+        # print("a_shape={}, w_shape={}, b_shape={}".format(str(a_shape), str(w_shape), str(b_shape)))
+        # print("data_shape={}, kernel_shape={}, bias_shape={}".format(str(data_shape), str(kernel_shape), str(bias_shape)))
     else:
         data_shape = a_shape
         kernel_shape = w_shape
@@ -118,48 +118,53 @@ def run_depthwise_conv2d(env, remote, wl, target,
         res = topi.nn.depthwise_conv2d_nchw(
             data, kernel, (wl.hstride, wl.wstride), (wl.hpad, wl.wpad), (1, 1), env.acc_dtype)
         res = topi.right_shift(res, 8)
-        res = topi.add(res, bias)
+        # res = topi.add(res, bias)
         res = my_clip(res, 0, (1 << env.OUT_WIDTH - 1) - 1)
         res = topi.cast(res, env.out_dtype)
         # Derive base schedule
         s = topi.generic.schedule_depthwise_conv2d_nchw([res])
         if print_ir:
-            print(vta.lower(s, [data, kernel, bias, res], simple_mode=True))
+            print(vta.lower(s, [data, kernel], simple_mode=True))
 
     # Derive number of ops
     fout_height = (wl.height + 2 * wl.hpad - wl.hkernel) // wl.hstride + 1
     fout_width = (wl.width + 2 * wl.wpad - wl.wkernel) // wl.wstride + 1
     num_ops = 2 * wl.batch * fout_height * fout_width * wl.hkernel * wl.wkernel * \
-        wl.out_filter * wl.in_filter // wl.groups
+        wl.out_filter * wl.in_filter // wl.multiplier
 
     def get_ref_data():
         # derive min max for act, wgt, and bias types (max non inclusive)
         a_min, a_max = 0 - (1 << (env.INP_WIDTH - 1)), (1 << (env.INP_WIDTH - 1))
         w_min, w_max = 0 - (1 << (env.WGT_WIDTH - 1)), (1 << (env.WGT_WIDTH - 1))
-        b_min, b_max = 0 - 1 << (env.INP_WIDTH + env.WGT_WIDTH - 2), 1 << (env.INP_WIDTH + env.WGT_WIDTH - 2)
         a_np = np.random.randint(a_min, a_max, size=a_shape).astype(data.dtype)
         w_np = np.random.randint(w_min, w_max, size=w_shape).astype(kernel.dtype)
-        b_np = np.random.randint(b_min, b_max, size=b_shape).astype(env.acc_dtype)
-        r_np = topi.testing.conv2d_nchw_python(
+        b_np = np.random.randint(-1, 2, size=b_shape).astype(env.acc_dtype)
+        r_np = topi.testing.depthwise_conv2d_python_nchw(
             a_np.astype(env.acc_dtype), w_np.astype(env.acc_dtype), 
-            (wl.hstride, wl.wstride), wl.hpad, wl.groups).astype(env.acc_dtype)
+            (wl.hstride, wl.wstride), "SAME").astype(env.acc_dtype)
         return a_np, w_np, b_np, r_np
 
     # Data in original format
     data_np, kernel_np, bias_np, res_ref = get_ref_data()
     if data_pack:
         data_np = data_np.reshape(
-            wl.batch//env.BATCH, env.BATCH,
-            wl.in_filter//env.BLOCK_IN, env.BLOCK_IN,
+            wl.batch // env.BATCH, env.BATCH,
+            wl.in_filter // env.BLOCK_IN, env.BLOCK_IN,
             wl.height, wl.width).transpose((0, 2, 4, 5, 1, 3))
         kernel_np = kernel_np.reshape(
-            wl.out_filter//env.BLOCK_OUT, env.BLOCK_OUT,
-            CI_G//env.BLOCK_IN, env.BLOCK_IN,
+            wl.out_filter // env.BLOCK_OUT, env.BLOCK_OUT,
+            wl.multiplier, 1,
             wl.hkernel, wl.wkernel).transpose((0, 2, 4, 5, 1, 3))
         bias_np = bias_np.reshape(
             wl.batch//env.BATCH, wl.out_filter//env.BLOCK_OUT,
             1, 1, env.BATCH, env.BLOCK_OUT)
-    print("data_np.shape={}, kernel_np.shape={}, bias_np.shape={}".format(str(data_np.shape), str(kernel_np.shape), str(bias_np.shape)))
+
+    # print("data_np.shape={}, kernel_np.shape={}, bias_np.shape={}". \
+    #       format(str(data_np.shape), str(kernel_np.shape), str(bias_np.shape)))
+    assert data_np.shape == data_shape, \
+        "data_np.shape={}, data_shape={}".format(data_np.shape, data_shape)
+    assert kernel_np.shape == kernel_shape
+    assert bias_np.shape == bias_shape
 
     # Build
     if "vta" in target.keys:
@@ -215,13 +220,24 @@ def run_depthwise_conv2d(env, remote, wl, target,
         res_orig = res_arr.asnumpy()
         if data_pack:
             res_orig = res_orig.transpose(
-                (0, 4, 1, 5, 2, 3)).reshape(wl.batch, wl.out_filter, fout_height, fout_width)
+                (0, 4, 1, 5, 2, 3)).reshape(wl.batch, wl.out_filter * wl.multiplier, fout_height, fout_width)
             bias_np = bias_np.transpose(
                 (0, 4, 1, 5, 2, 3)).reshape(wl.batch, wl.out_filter, 1, 1)
         res_ref = res_ref >> env.WGT_WIDTH
-        res_ref += bias_np
+        # res_ref += bias_np
         res_ref = np.clip(res_ref, 0, (1 << env.OUT_WIDTH - 1) - 1)
         res_ref = res_ref.astype(env.out_dtype)
+        # print(res_orig.shape, res_ref.shape)
+        # print("--")
+        # print(data_np[0,0,:5,:5,0,0])
+        # print(kernel_np[0,0,:,:,0,0])
+        # print("--")
+        # print(res_orig[0,0,:5,:5])
+        # print(res_orig[0,:,0,0])
+        # print("--")
+        # print(res_ref[0,1,:5,:5])
+        # print(res_ref[0,:,0,0])
+        np.testing.assert_allclose(res_orig, res_ref)
         correct = np.allclose(res_orig, res_ref)
 
     gops = (num_ops / cost.mean) / float(10 ** 9)
