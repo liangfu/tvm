@@ -42,7 +42,6 @@ def packed_depthwise_conv2d(cfg,
                                [0, 0, padding[0]+kp, padding[1]+kp, 0, 0], name="pad_data")
     else:
         pad_data = data
-    kernel = topi.nn.pad(kernel, [0,0,0,0,0,0], [0,0,kp,kp,0,0], name="pad_kernel")
 
     assert len(data.shape) == 6
     assert len(kernel.shape) == 6
@@ -55,34 +54,36 @@ def packed_depthwise_conv2d(cfg,
     multiplier = kshape[1]
     blocksize = ishape[-1]
 
-    oheight = topi.util.get_const_int((pad_data.shape[2] - kshape[2]) // strides[0] + 1)
-    owidth = topi.util.get_const_int((pad_data.shape[3] - kshape[3]) // strides[1] + 1)
-    oshape = (ishape[0], ishape[1] * multiplier, oheight, owidth, ishape[4], ishape[5])
-
     assert blocksize == 1
-    assert kshape[2] == 4 and kshape[3] == 4
+    assert kshape[2] == 3 and kshape[3] == 3
+
+    pad_kernel = topi.nn.pad(kernel, [0,0,0,0,0,0], [0,0,kp,kp,0,0], name="pad_kernel")
+    pad_kernel = topi.reshape(pad_kernel, (kshape[0], kshape[1], 1, 16, 1, 1))
+
+    oheight = topi.util.get_const_int((pad_data.shape[2] - 4) // strides[0] + 1)
+    owidth = topi.util.get_const_int((pad_data.shape[3] - 4) // strides[1] + 1)
+    oshape = (ishape[0], ishape[1] * multiplier, oheight, owidth, ishape[4], ishape[5])
 
     print("--")
     print("ishape={}, kshape={}, oshape={}".format(ishape, kshape, oshape))
     # print(topi.reshape)
     # print(topi.transpose)
     # print(topi.nn.pad)
-    # print("TODO(liangfu): transpose and pad kernel to (2, 1, 1, 1, 16, 16) from (2, 1, 3, 3, 16, 1)")
     print("--")
 
-    ko = tvm.reduce_axis((0, kshape[2]), name='ko') # kernel
-    ki = tvm.reduce_axis((0, kshape[3]), name='ki')
+    ko = tvm.reduce_axis((0, 1), name='ko') # kernel
+    ki = tvm.reduce_axis((0, 16), name='ki')
     hstride, wstride = strides
     out = tvm.compute(
         oshape,
         lambda bo, co, i, j, bi, ci: tvm.sum(
             pad_data[bo,
                      co,
-                     i * hstride + ko,
-                     j * wstride + ki,
+                     i * hstride + tvm.indexdiv(ki, 4),
+                     j * wstride + tvm.indexmod(ki, 4),
                      bi,
                      ci].astype(out_dtype) *
-            kernel[co,
+            pad_kernel[co,
                    0,
                    ko,
                    ki,
@@ -90,8 +91,8 @@ def packed_depthwise_conv2d(cfg,
                    0].astype(out_dtype),
             axis=[ko, ki]),
         name="res", tag="packed_depthwise_conv2d")
-    
-    cfg.add_flop(np.prod(topi.util.get_const_tuple(oshape)) * kshape[2] * kshape[3])
+
+    cfg.add_flop(np.prod(topi.util.get_const_tuple(oshape)) * 16)
 
     return out
 
