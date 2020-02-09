@@ -111,6 +111,7 @@ def schedule_packed_depthwise_conv2d(cfg, outs):
     assert output.op.input_tensors[0].dtype == "int32"
 
     def _traverse(op):
+        print(op.output(0).op.name, [tensor.op.name for tensor in op.input_tensors], op.tag)
         if topi.tag.is_broadcast(op.tag):
             if not op.same_as(output.op):
                 if not op.axis:
@@ -125,6 +126,7 @@ def schedule_packed_depthwise_conv2d(cfg, outs):
         else:
             assert op.tag == "packed_depthwise_conv2d"
             conv2d_res.append(op)
+            print('--')
 
     _traverse(output.op)
     assert len(conv2d_res) == 1
@@ -139,6 +141,11 @@ def schedule_packed_depthwise_conv2d(cfg, outs):
     cfg.define_split('tile_co', co, num_outputs=2)
     ###### space definition end ######
 
+    if cfg.is_fallback:
+        cfg.fallback_split('tile_h', [-1, 16])
+        cfg.fallback_split('tile_w', [-1, 1])
+        cfg.fallback_split('tile_co', [-1, 1])
+
     data, kernel = conv2d_stage.op.input_tensors
     if isinstance(data.op, tvm.tensor.ComputeOp) and "pad" in data.op.tag:
         temp = data.op.input_tensors[0]
@@ -150,18 +157,21 @@ def schedule_packed_depthwise_conv2d(cfg, outs):
     env = get_env()
     
     # setup pad
+    # TODO(liangfu): cache read pad_data into wgt_scope
     # if pad_data is not None:
     #     cdata = pad_data
     #     s[pad_data].set_scope(env.wgt_scope)
+    #     cdata = s.cache_read(pad_data, env.wgt_scope, [conv2d_stage])
     # else:
     #     cdata = s.cache_read(data, env.wgt_scope, [conv2d_stage])
-    # ckernel = s.cache_read(kernel, env.inp_scope, [conv2d_stage])
+    cdata = s.cache_read(pad_data, env.wgt_scope, [conv2d_stage])
+    ckernel = s.cache_read(kernel, env.inp_scope, [conv2d_stage])
     # s[conv2d_stage].set_scope(env.acc_scope)
     
     # cache read input
-    # cache_read_ewise = []
-    # for consumer, tensor in ewise_inputs:
-    #     cache_read_ewise.append(s.cache_read(tensor, env.acc_scope, [consumer]))
+    cache_read_ewise = []
+    for consumer, tensor in ewise_inputs:
+        cache_read_ewise.append(s.cache_read(tensor, env.acc_scope, [consumer]))
     
     # set ewise scope
     # for op in ewise_ops:
@@ -183,17 +193,23 @@ def schedule_packed_depthwise_conv2d(cfg, outs):
     for op in ewise_ops:
         s[op].compute_at(s[output], store_pt)
     
-    # for tensor in cache_read_ewise:
-    #     s[tensor].compute_at(s[output], store_pt)
-    #     s[tensor].pragma(s[tensor].op.axis[0], env.dma_copy)
+    for tensor in cache_read_ewise:
+        s[tensor].compute_at(s[output], store_pt)
+        s[tensor].pragma(s[tensor].op.axis[0], env.dma_copy)
     
     x_bo, x_co, x_i, x_j, x_bi, x_ci = s[conv2d_stage].op.axis
     ko, ki = s[conv2d_stage].op.reduce_axis
     s[conv2d_stage].reorder(x_bo, ko, x_j, x_co, x_i, x_bi, x_ci, ki)
+
+    # ko, _ = cfg['tile_w'].apply(s, conv2d_stage, ko)
+    s[cdata].compute_at(s[conv2d_stage], x_i)
+    s[ckernel].compute_at(s[conv2d_stage], ko)
+
+    # fused = s[cdata].fuse(*list(s[cdata].op.axis))
     
     # Use VTA instructions
     # s[cdata].pragma(s[cdata].op.axis[0], env.dma_copy)
-    # s[ckernel].pragma(s[ckernel].op.axis[0], env.dma_copy)
+    s[ckernel].pragma(s[ckernel].op.axis[0], env.dma_copy)
     # s[conv2d_stage].tensorize(x_bi, env.gemm)
     # s[output].pragma(x_co1, env.dma_copy)
 
