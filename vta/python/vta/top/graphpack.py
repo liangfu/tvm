@@ -59,11 +59,18 @@ def _pack_weight(data, dshape, cfactor):
     """
     assert len(dshape) == 4
     assert int(dshape[0]) % cfactor == 0
-    assert int(dshape[1]) % cfactor == 0
-    data = op.reshape(data,
-                      newshape=(int(dshape[0]) // cfactor, cfactor,
-                                int(dshape[1]) // cfactor, cfactor,
-                                int(dshape[2]), int(dshape[3])))
+    if int(dshape[1]) == 1:
+        # depthwise conv2d
+        newshape = int(dshape[0]), 1, 1, 1, int(dshape[2]), int(dshape[3])
+        data = op.reshape(data, newshape=newshape)
+        dshape = newshape
+    else:
+        assert int(dshape[1]) % cfactor == 0, \
+            'assume int(dshape[1]) % cfactor == 0, while dshape={} and cfactor={}'.format(dshape, cfactor)
+        data = op.reshape(data,
+                          newshape=(int(dshape[0]) // cfactor, cfactor,
+                                    int(dshape[1]) // cfactor, cfactor,
+                                    int(dshape[2]), int(dshape[3])))
     data = op.transpose(
         data, axes=(0, 2, 4, 5, 1, 3))
     return data
@@ -264,6 +271,7 @@ def get_subgraph(expr, start_name, stop_name):
         elif isinstance(anf, relay.expr.Let):
             value = anf.value
             if isinstance(value, relay.expr.Call):
+                print(value.op.name)
                 if isinstance(value.op, relay.op.Op):
                     if value.op.name == start_name and not start_found:
                         value = relay.expr.Call(bitpack_start, [value])
